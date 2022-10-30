@@ -1,0 +1,10 @@
+
+
+# c++ gitignore
+.\#credentials
+build/*
+
+
+# python gitignore
+python/token.tk
+python/__pycache__/*
