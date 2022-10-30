@@ -6,5 +6,6 @@ build/*
 
 
 # python gitignore
+python/credentials
 python/token.tk
 python/__pycache__/*
