@@ -2,12 +2,12 @@
 .\#*
 
 # c++
-build/*
+build
 
 # python
 python/credentials
 python/token.tk
-python/__pycache__/*
+python/__pycache__
 
 # cached queries
-cache/*
+cache
