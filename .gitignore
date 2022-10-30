@@ -9,3 +9,6 @@ build/*
 python/credentials
 python/token.tk
 python/__pycache__/*
+
+# cached queries
+cache/*

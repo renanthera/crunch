@@ -1,8 +1,9 @@
-from staggerModeling import *
 from stagger import *
 from wcl import *
 
 # wcl.py conatins some magic values for access to v2 api and local filenames of client secrets
+
+# the code to automagically provide a new token if authentication fails currently doesn't work. running just getToken() once will provide you a new one, and the rest of the script now works
 
 reportCode = 'RL1v2DbxckJ9dTWq'
 encounterIDBlacklist = []

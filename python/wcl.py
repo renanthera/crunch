@@ -54,13 +54,17 @@ def loadCredentials(credentialsFilename):
     data = str(data).split('\'')
     return data[1], data[3]
 
-def getRequest(query):
+def getRequest(query, failed=0):
     token = readToken()
     try:
         request = requests.post(v2endpoint, headers={'Authorization': "Bearer "+token['access_token']}, data={'query':query})
         if (request.text == "{\"error\":\"Unauthenticated.\"}"):
+            if (failed == 1):
+                print('Already failed once. Something\'s borked, fix it yourself.')
+                return -1
             print('Unauthenticated. Attempting to obtain new token and re-run query.')
-            return getRequest(query)
+            getToken()
+            return getRequest(query, failed=1)
         return request
     except HTTPError as http_err:
         print(f'HTTP error occurred: {http_err}')

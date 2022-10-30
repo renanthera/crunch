@@ -1,3 +1,7 @@
+
+# YEAH WELL THIS IS ALL WRONG. CHECK OUT stagger.py FOR SOMETHING CORRECT. SOME INTERESTING VIZ IDEAS HERE, THOUGH.
+
+
 from analysis import *
 
 # constant-sized return object based on duration spent with stagger debuff * 2
