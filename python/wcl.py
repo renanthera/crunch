@@ -129,3 +129,30 @@ def fallbackGetPlayers(reportCode, p=None):
     if (p!=None):
         print(tabulate(fallbackPlayerList,headers='keys'))
     return fallbackPlayerList
+
+def segmentMenu(reportCode, encounterIDBlacklist):
+    segmentList = getSegments(reportCode, encounterIDBlacklist, 1)
+    segmentSelection = int(input('Enter segment selection: '))
+    print()
+    startTime = segmentList[segmentSelection][4]
+    endTime = segmentList[segmentSelection][5]
+    return startTime, endTime
+
+def playerMenu(reportCode, startTime, endTime):
+    playerList = getPlayers(reportCode, startTime, endTime, 1)
+    playerSelection = int(input('Enter player selection: '))
+    id = str(playerSelection)
+    if (type(playerSelection) == type([])):
+        if (type(playerSelection[0]) == type([])):
+            id = str(playerList[playerSelection][1])
+    return id
+
+def executeMenus(reportCode, encounterIDBlacklist):
+    startTime, endTime = segmentMenu(reportCode, encounterIDBlacklist)
+    id = playerMenu(reportCode, startTime, endTime)
+    return startTime, endTime, id
+
+def dumpArtifact(artifact, name):
+    json_object = json.dumps(artifact, indent=2)
+    with open(name+".json", "w") as outfile:
+        outfile.write(json_object)

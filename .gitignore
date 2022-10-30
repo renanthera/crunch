@@ -1,11 +1,10 @@
+# emacs
+.\#*
 
-
-# c++ gitignore
-.\#credentials
+# c++
 build/*
 
-
-# python gitignore
+# python
 python/credentials
 python/token.tk
 python/__pycache__/*
