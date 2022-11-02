@@ -19,7 +19,7 @@ int main() {
   list->resetIterator();
   int j = 0;
   while (list->iterator) {
-    std::cout << j << ' ' << *list->iterator->event << ' ' << list->iterator->next << std::endl;
+    std::cout << j << ' ' << *list->iterator->data << ' ' << list->iterator->next << std::endl;
     list->iterator = list->iterator->next;
     j++;
   };
@@ -29,12 +29,12 @@ int main() {
   for (int i = 1; i < 4; i++) {
     list->iterator = list->iterator->next;
   };
-  std::cout << *list->iterator->event << std::endl;
+  std::cout << *list->iterator->data << std::endl;
   list->swapConsecutiveNodes(list->iterator);
   list->resetIterator();
   j = 0;
   while (list->iterator) {
-    std::cout << j << ' ' << *list->iterator->event << ' ' << list->iterator->next << std::endl;
+    std::cout << j << ' ' << *list->iterator->data << ' ' << list->iterator->next << std::endl;
     list->iterator = list->iterator->next;
     j++;
   };

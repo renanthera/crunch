@@ -1,60 +1,60 @@
-// template <typename Event> struct Node;
+// template <typename Data> struct Node;
 
 namespace LinkedList {
-  template <typename Event>
+  template <typename Data>
   struct Node {
     char t;
-    Event* event;
+    Data* data;
     Node* next;
   };
 
-  template <typename Event> class List;
+  template <typename Data> class List;
 
-  template <typename Event> class List {
+  template <typename Data> class List {
   public:
-    Node<Event>* head;
-    Node<Event>* iterator;
+    Node<Data>* head;
+    Node<Data>* iterator;
 
-    Node<Event>* addNode(Node<Event>* previous, Event* event);
-    void swapConsecutiveNodes(Node<Event>* previous);
+    Node<Data>* addNode(Node<Data>* previous, Data* data);
+    void swapConsecutiveNodes(Node<Data>* previous);
     void resetIterator();
 
-    List(Event* event);
+    List(Data* data);
   };
 
-  template <typename Event>
-  Node<Event>* List<Event>::
-  addNode(Node<Event>* previous, Event* event) {
-    previous->next = new Node<Event>;
-    previous->next->event = event;
+  template <typename Data>
+  Node<Data>* List<Data>::
+  addNode(Node<Data>* previous, Data* data) {
+    previous->next = new Node<Data>;
+    previous->next->data = data;
     return previous->next;
   };
 
-  template <typename Event>
-  void List<Event>::
-  swapConsecutiveNodes(Node<Event>* previous) {
+  template <typename Data>
+  void List<Data>::
+  swapConsecutiveNodes(Node<Data>* previous) {
     // a -> b -> c -> d
     // a -> c -> b -> d
-    Node<Event>* a = previous;
-    Node<Event>* b = a->next;
-    Node<Event>* c = b->next;
-    Node<Event>* d = c->next;
+    Node<Data>* a = previous;
+    Node<Data>* b = a->next;
+    Node<Data>* c = b->next;
+    Node<Data>* d = c->next;
     a->next = c;
     c->next = b;
     b->next = d;
   };
 
-  template <typename Event>
-  void List<Event>::
+  template <typename Data>
+  void List<Data>::
   resetIterator() {
     iterator = head;
   };
 
-  template <typename Event>
-  List<Event>::
-  List(Event* event) {
-    head = new Node<Event>;
-    head->event = event;
+  template <typename Data>
+  List<Data>::
+  List(Data* data) {
+    head = new Node<Data>;
+    head->data = data;
     resetIterator();
   };
 };
