@@ -6,7 +6,12 @@ from wcl import *
 
 # i also just am not doing anything in place. hell no. i'll just rewrite the entire index any time i modify it
 
-cacheIndex = {'path':'../cache/index.json'}
+cacheIndex = {'path':'cache/index.json'}
+
+def initCache():
+    init = []
+    os.makedirs(os.path.dirname('../'+cacheIndex['path']), exist_ok=True)
+    dumpArtifact(init, cacheIndex)
 
 def buildIdentifier(reportCode, startTime, endTime, id, abilityID, dataType):
     temp = {'reportCode':reportCode,'startTime':startTime,'endTime':endTime,'id':id,'abilityID':abilityID,'dataType':dataType}
@@ -14,10 +19,14 @@ def buildIdentifier(reportCode, startTime, endTime, id, abilityID, dataType):
     return temp
 
 def buildArtifactPath(identifier):
-    return '../cache/'+identifier['reportCode']+'/'+str(identifier['startTime'])+'-'+str(identifier['endTime'])+'_'+str(identifier['id'])+'_'+str(identifier['abilityID'])+'_'+identifier['dataType']+'.json'
+    return 'cache/'+identifier['reportCode']+'/'+str(identifier['startTime'])+'-'+str(identifier['endTime'])+'_'+str(identifier['id'])+'_'+str(identifier['abilityID'])+'_'+identifier['dataType']+'.json'
 
 def checkCacheForArtifact(identifier):
-    index = readArtifact(cacheIndex)
+    try:
+        index = readArtifact(cacheIndex)
+    except:
+        initCache()
+        return checkCacheForArtifact(identifier)
     for k in index:
         if (k == identifier):
             return True
@@ -31,14 +40,14 @@ def addArtifactToCache(artifact, identifier):
     return 0
 
 def readArtifact(identifier):
-    with open(identifier['path'], 'r') as openfile:
+    with open('../'+identifier['path'], 'r') as openfile:
         json_object = json.load(openfile)
     return json_object
 
 def dumpArtifact(artifact, identifier):
     json_object = json.dumps(artifact, indent=2)
-    os.makedirs(os.path.dirname(identifier['path']), exist_ok=True)
-    with open(identifier['path'], "w") as outfile:
+    os.makedirs(os.path.dirname('../'+identifier['path']), exist_ok=True)
+    with open('../'+identifier['path'], "w") as outfile:
         outfile.write(json_object)
     return 0
 

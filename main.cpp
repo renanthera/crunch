@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "LinkedList.hpp"
+#include "LoadData.cpp"
 #include "temp.cpp"
 
 using namespace LinkedList;
@@ -37,4 +38,5 @@ int main() {
     list->iterator = list->iterator->next;
     j++;
   };
+  readFile("cache/index.json");
 };
