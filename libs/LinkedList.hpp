@@ -1,105 +1,80 @@
-// template <typename Data> struct Node;
-
-#include <iostream>
-#include <typeinfo>
-
 namespace LinkedList {
-  template <template <class> class Node, typename T>
-  class Base {
-  public:
+  struct Base {
     const int t;
     Base* next;
+
     Base(const int t) : t{t} {};
-    virtual ~Base() = default;
-    // static Base<Node, T>* constructor(const int t, T* data);
-    T accessDerivedField() {
-      Node<T>* derived = static_cast<Node<T>*>(this);
-      return *derived->data;
-    };
+    template <typename T>
+    static Base* constructor(const int t, T* data);
   };
 
   template <typename T>
-  class Node : public Base<Node, T> {
-  public:
+  struct Node : Base {
     T* data;
-    Node(const int t, T* data) : Base<Node,T>(t) {
+
+    Node(const int t, T* data) : Base(t) {
       this->data = data;
     };
   };
 
-  // struct Base {
-  //   const int t;
-  //   Base* next;
-  //   Base(const int t) : t{t} {};
-  //   template <typename T>
-  //   static Base* constructor(const int t, T* data);
-  //   virtual void printData() = 0;
-  //   virtual Base* castNode() = 0;
-  // };
+  template <typename T>
+  Base* Base::constructor(const int t, T* data) {
+    return new Node(t, data);
+  };
 
-  // template <typename T>
-  // struct Node : Base {
-  //   T* data;
-  //   T* returnData() {
-  //     return this->data;
-  //   };
-  //   void addData(T* data) {
-  //     this->data = data;
-  //   }
-  //   Node(const int t, T* data) : Base(t) {
-  //     std::cout << typeid(this).name() << std::endl;
-  //     this->data = data;
-  //   };
-  //   void printData() {
-  //     std::cout << *data << std::endl;
-  //   };
-  //   Node<T>* castNode() {
-  //     return static_cast<Node<T>*>(this);
-  //   };
-  // };
+  class List {
+  public:
+    Base* head;
+    Base* tail;
+    Base* iterator;
 
-  // template <typename T>
-  // Base* Base::constructor(const int t, T* data) {
-  //   return new Node(t, data);
-  // };
+    List(const int t, void* d) {
+      this->head = Base::constructor(t, d);
+      this->tail = this->head;
+      this->iterator = this->head;
+    };
 
-  // class List {
-  // public:
-  //   Base* head;
-  //   Base* tail;
-  //   Base* iterator;
+    void appendNode(const int t, void* d) {
+      this->tail->next = Base::constructor(t, d);
+      this->tail = this->tail->next;
+    };
 
-  //   List(const int t, void* data) {
-  //     switch (t) {
-  //     case 0:
-  //       int* d = static_cast<int*>(data);
-  //       this->head = Base::constructor(t, d);
-  //     }
-  //     this->tail = this->head;
-  //     this->iterator = this->head;
-  //   };
+    void nextNode() {
+      this->iterator = this->iterator->next;
+    };
 
-  //   // void appendNode(const int t) {
-  //   //   this->tail->next = new Base(t);
-  //   //   this->tail = this->tail->next;
-  //   // };
+    void swapConsecutiveNodes(Base* previous) {
+      // a -> b -> c -> d => a -> c-> b -> d
+      Base* a = previous;
+      Base* b = a->next;
+      Base* c = b->next;
+      Base* d = c->next;
+      a->next = c;
+      c->next = b;
+      b->next = d;
+    };
 
-  //   void nextNode() {
-  //     this->tail = this->tail->next;
-  //   }
+    void resetIterator() {
+      this->iterator = head;
+    };
+  };
 
-  //   void swapConsecutiveNodes(Base* previous) {
-  //     Base* a = previous;
-  //     Base* b = a->next;
-  //     Base* c = b->next;
-  //     Base* d = c->next;
-  //     a->next = c;
-  //     c->next = b;
-  //     b->next = d;
-  //   };
+  template <typename T>
+  Node<T>* read(Base* node, Node<T>* (*funct_ptr)(Node<T>* node)) {
+    return funct_ptr(static_cast<Node<T>*>(node));
+  };
 
-  //   void resetIterator() {
-  //     this->iterator = head;
-  //   };
-  // };
+  template <typename T>
+  using manipulator = Node<T>* (*)(Node<T>* node);
+
+  template <typename T>
+  Node<T>* doSomething(Node<T>* node) {
+    *node->data = *node->data + 10;
+    return node;
+  };
+
+  template <typename T>
+  Node<T>* doNothing(Node<T>* node) {
+    return node;
+  };
 };
