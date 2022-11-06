@@ -1,5 +1,5 @@
-from wcl import *
-from caching import *
+import wcl
+import caching
 
 # wcl.py conatins some magic values for access to v2 api and local filenames of client secrets
 
@@ -13,34 +13,34 @@ from caching import *
 reportCode = 'RL1v2DbxckJ9dTWq'
 encounterIDBlacklist = []
 
-startTime, endTime, id = executeMenus(reportCode, encounterIDBlacklist)
+startTime, endTime, id = wcl.executeMenus(reportCode, encounterIDBlacklist)
 
 # stagger absorb events
 abilityID = '115069'
 dataType = 'Healing'
-fields = ['data','reportData','report','events','data']
-absorbTicks = cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
+fields = ['data', 'reportData', 'report', 'events', 'data']
+absorbTicks = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
 
 # purification casts
 abilityID = '119582'
 dataType = 'Casts'
-fields = ['data','reportData','report','events','data']
-absorbTicks = cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
+fields = ['data', 'reportData', 'report', 'events', 'data']
+purificationCasts = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
 
 # stagger damage tick events
 abilityID = '124255'
 dataType = 'DamageTaken'
-fields = ['data','reportData','report','events','data']
-absorbTicks = cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
+fields = ['data', 'reportData', 'report', 'events', 'data']
+damageTicks = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
 
 # brewmaster's rhythm
 abilityID = '394797'
 dataType = 'Buffs'
-fields = ['data','reportData','report','events','data']
-absorbTicks = cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
+fields = ['data', 'reportData', 'report', 'events', 'data']
+brewmasterRhythm = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
 
 # print api points spent to console (so you can see if you're an idiot)
-pointsSpent()
+wcl.pointsSpent()
 
 # this will get removed once the c++ implementation is completed. exists as notes until then.
 

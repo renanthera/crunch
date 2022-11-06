@@ -1,25 +1,29 @@
+#include <iostream>
+
+#include "../Types.cpp"
+
 namespace LinkedList {
   struct Base {
-    const int t;
+    const int type;
     Base* next;
 
-    Base(const int t) : t{t} {};
+    Base(const int type) : type{type} {};
     template <typename T>
-    static Base* constructor(const int t, T* data);
+    static Base* constructor(const int type, T* data);
   };
 
   template <typename T>
   struct Node : Base {
     T* data;
 
-    Node(const int t, T* data) : Base(t) {
+    Node(const int type, T* data) : Base(type) {
       this->data = data;
     };
   };
 
   template <typename T>
-  Base* Base::constructor(const int t, T* data) {
-    return new Node(t, data);
+  Base* Base::constructor(const int type, T* data) {
+    return new Node(type, data);
   };
 
   class List {
@@ -27,16 +31,19 @@ namespace LinkedList {
     Base* head;
     Base* tail;
     Base* iterator;
+    int length;
 
-    List(const int t, void* d) {
-      this->head = Base::constructor(t, d);
+    List(const int type, void* data) {
+      this->head = Base::constructor(type, data);
       this->tail = this->head;
       this->iterator = this->head;
+      this->length = 1;
     };
 
-    void appendNode(const int t, void* d) {
-      this->tail->next = Base::constructor(t, d);
+    void appendNode(const int type, void* data) {
+      this->tail->next = Base::constructor(type, data);
       this->tail = this->tail->next;
+      this->length++;
     };
 
     void nextNode() {
@@ -45,12 +52,10 @@ namespace LinkedList {
 
     void swapConsecutiveNodes(Base* previous) {
       // a -> b -> c -> d => a -> c-> b -> d
-      Base* a = previous;
-      Base* b = a->next;
-      Base* c = b->next;
-      Base* d = c->next;
-      a->next = c;
-      c->next = b;
+      Base* b = previous->next;
+      Base* d = b->next->next;
+      previous->next = b->next;
+      previous->next->next = b;
       b->next = d;
     };
 
@@ -60,7 +65,7 @@ namespace LinkedList {
   };
 
   template <typename T>
-  Node<T>* read(Base* node, Node<T>* (*funct_ptr)(Node<T>* node)) {
+  Node<T>* access(Base* node, Node<T>* (*funct_ptr)(Node<T>* node)) {
     return funct_ptr(static_cast<Node<T>*>(node));
   };
 
@@ -76,5 +81,50 @@ namespace LinkedList {
   template <typename T>
   Node<T>* doNothing(Node<T>* node) {
     return node;
+  };
+
+  template <typename T>
+  void printEntry(int index, Node<T>* node) {
+    std::cout << index << ' ' << static_cast<int>(node->type) << ' ' << *node->data << ' ' << node << std::endl;
+  };
+
+  template <>
+  void printEntry(int index, Node<types::Cache>* node) {
+    std::cout << index << ' ';
+    std::cout << node->data->reportCode << ' ';
+    std::cout << node->data->startTime << ' ';
+    std::cout << node->data->endTime << ' ';
+    std::cout << node->data->actorID << ' ';
+    std::cout << node->data->dataType << ' ';
+    std::cout << node->data->abilityID << ' ';
+    std::cout << node->data->path << ' ';
+    std::cout << std::endl;
+  };
+
+  void printList(List* list) {
+    manipulator<types::Cache> func_0 = doNothing;
+    manipulator<int> func_1 = doNothing;
+    manipulator<char> func_2 = doNothing;
+
+    int n = list->length;
+    for (int i = 0; i < n; i++) {
+      switch (list->iterator->type) {
+        case types::json_t::cache_t: {
+          printEntry(i, access(list->iterator, func_0));
+          break;
+        }
+        case types::misc_t::int_t: {
+          printEntry(i, access(list->iterator, func_1));
+          break;
+        };
+        case types::misc_t::char_t: {
+          printEntry(i, access(list->iterator, func_2));
+          break;
+        };
+      };
+      list->nextNode();
+    };
+    list->resetIterator();
+    std::cout << std::endl;
   };
 };

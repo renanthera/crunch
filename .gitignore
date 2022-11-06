@@ -5,6 +5,7 @@
 build
 
 # python
+python/package*
 python/credentials
 python/token.tk
 python/__pycache__
