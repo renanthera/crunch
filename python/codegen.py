@@ -1,111 +1,9 @@
-import caching
 import json
 
 
-
-def resolveTypes(types):
-    main = {}
-    for k in types['data']['__schema']['types']:
-        if (k['kind'].lower() == 'object'):
-            main[k['name'].lower()] = [z['name'].lower() for z in k['fields']]
-        if (k['kind'].lower() == 'enum'):
-            main[k['name'].lower()] = [z['name'].lower() for z in k['enumValues']]
-        if (k['kind'].lower() == 'scalar'):
-            main[k['name'].lower()] = None
-    return main
-
-
-def processEntry(v):
-    if (type(v) is not list and type(v) is not dict):
-        return v
-    else:
-        return trimEntry(v)
-
-
-def trimEntry(entry):
-    blacklist = ['includeDeprecated', 'isDeprecated', 'deprecationReason']
-    out = {}
-    if (type(entry) is dict):
-        if (entry['name'] not in blacklist):
-            for k, v in entry.items():
-                if (k not in blacklist):
-                    if (v is not None and v != [] and v != {}):
-                        out[k] = processEntry(v)
-    elif (type(entry) is list):
-        for k in entry:
-            if (k is not None and k != [] and k != {}):
-                if (k['name'] not in blacklist):
-                    out[k['name']] = processEntry(k)
-    return out
-
-
-def processEntries(group):
-    obj = {}
-    obj['kind'] = group['kind']
-    obj['name'] = group['name']
-    if (group['fields'] is not None):
-        for subentry in group['fields']:
-            if ('name' in subentry):
-                obj[subentry['name']] = trimEntry(subentry)
-            elif ('kind' in entry):
-                obj[subentry['kind']] = trimEntry(subentry)
-    elif (group['enumValues'] is not None):
-        for subentry in group['enumValues']:
-            if ('name' in subentry):
-                obj[subentry['name']] = trimEntry(subentry)
-            elif ('kind' in entry):
-                obj[subentry['kind']] = trimEntry(subentry)
-    else:
-        return group
-    return obj
-
-
-def postProcess(obj):
-    out = {}
-    if (type(obj) is dict):
-        for k, v in obj.items():
-            if (v != {} and type(v) is not dict):
-                out[k] = v
-            elif (v != {} and type(v) is dict):
-                out[k] = postProcess(v)
-    return out
-
-
-def populateTypes(schema):
-    for entry in schema['data']['__schema']['types'][:]:
-        print(entry['name'], '{')
-        data = postProcess(processEntries(entry))
-        for k, v in data.items():
-            print(k, v)
-        print('}\n')
-
-
-# populateTypes(schema)
-
-
-# def trimSchema(schema):
-#     blacklist = ['includeDeprecated', 'isDeprecated', 'deprecationReason', [], {}]
-#     if (type(schema) is dict):
-#         for k, v in schema.items():
-#             if (v in blacklist):
-#                 schema.pop(k)
-#             elif (type(v) is dict or type(v) is list):
-#                 trimSchema(v)
-#     elif (type(schema) is list):
-#         for k in schema:
-#             if (k in blacklist):
-#                 schema.remove(k)
-#             elif (type(k) is dict or type(k) is list):
-#                 trimSchema(k)
-
-
-# schema = caching.readArtifact({'path': 'cache/schema.json'})
-# trimSchema(schema)
-# dumpArtifact(schema, {'path': 'python/temp'})
-
 def jsonhook(dct):
     blacklistk = ['includeDeprecated', 'isDeprecated', 'deprecationReason']
-    blacklistv = [[],{},None]
+    blacklistv = [[], {}, None]
     o = {}
     for k, v in dct.items():
         if k not in blacklistk and v not in blacklistv:
@@ -116,19 +14,114 @@ def jsonhook(dct):
     return o
 
 
-with open('../cache/schema.json', 'r') as openfile:
-    schema = json.load(openfile,object_hook=jsonhook)
+schemapath = '../cache/schema.json'
+# with open(schemapath, 'r') as openfile:
+#     schema = json.load(openfile, object_hook=jsonhook)
 
-output = json.dumps(schema, indent=2)
-with open('temp', 'w') as outfile:
-    outfile.write(output)
+# output = json.dumps(schema, indent=2)
+# with open('temp', 'w') as outfile:
+#     outfile.write(output)
 
-# generate all fields from schema, strictly from __name fields
-# __schema -> types
-# __type -> type members
-# __typekind -> types + type overloads
-# __field -> type field members
-# __inputvalue -> ???
-# __enumvalue -> magic strings for constant, finite type descriptions
-# __directive -> ???
-# __directivelocation -> ???
+temppath = 'temp'
+with open(temppath, 'r') as openfile:
+    schema = json.load(openfile)
+
+types = schema['data']['__schema']['types']
+
+
+def objectNames(type):
+    if type['kind'] == 'object':
+        return 'struct '
+    elif type['kind'] == 'enum':
+        return 'enum '
+    elif type['kind'] == 'scalar':
+        return '// scalar ' + type['name'] + '\n'
+
+def scalarResolver(k):
+    name = k['name']
+    if name == 'boolean':
+        return 'bool'
+    elif name == 'int':
+        return 'int'
+    elif name == 'string':
+        return 'std::string'
+    elif name == 'float':
+        return 'float'
+    elif name == 'json':
+        return '// json'
+    return "scalar!!!!!!!"
+
+
+def typeResolver(k):
+    # not oftype
+    if 'type' in k:
+        r = k['type']
+    # oftype
+    else:
+        r = k
+    if 'kind' not in r:
+        return ''
+    match r['kind']:
+        case 'scalar':
+            return scalarResolver(r)
+        case 'object':
+            return r['name']
+        case 'interface':
+            return '!!!!!interface'
+        case 'union':
+            return '!!!!!union'
+        case 'enum':
+            return 'int'
+        case 'input_object':
+            return '!!!!!input_object'
+        case 'list':
+            return typeResolver(r['oftype'])+'*'
+        case 'non_null':
+            return typeResolver(r['oftype'])
+        case _:
+            return "!!!unknown type"
+
+def nameResolver(k):
+    if 'type' in k:
+        if 'kind' in k['type']:
+            if k['type']['kind'] == 'enum':
+                return k['type']['name']
+    return k['name']
+
+objects = []
+members = []
+validmembers = ['object','interface','union','enum','input_object','list','non_null']
+
+tabs = 0
+tab = "  "
+print(tabs * "  " + "namespace types {")
+tabs += 1
+for type in types:
+    print()
+    print(tabs * tab + objectNames(type), end='')
+    if objectNames(type) == '// scalar ' + type['name'] + '\n':
+        continue
+    print(type['name'], "{")
+    tabs += 1
+    if type['name'] not in objects:
+        objects.append(type['name'])
+    if type['kind'] != 'enum':
+        for k in type['fields']:
+            # print(k)
+            print(tabs*tab+typeResolver(k)+'* '+nameResolver(k))
+            if k['name'] not in members and k['type'] in validmembers:
+                members.append(k['name'])
+    else:
+        for k in type['enumvalues']:
+            # print(k)
+            print(tabs*tab+typeResolver(k)+nameResolver(k))
+    tabs -= 1
+    print(tabs * tab + "};")
+tabs -= 1
+print(tabs * tab + "};")
+
+for k in members:
+    if k not in objects:
+        print(k,' is not in objects!')
+
+print(len(objects))
