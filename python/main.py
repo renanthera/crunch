@@ -1,162 +1,52 @@
 import wcl
-import caching
-import json
-
-# wcl.py conatins some magic values for access to v2 api and local filenames of client secrets
-
-# MANUAL
-# enter warcraftlogs reportCode string as reportCode
-# filter encounter selection gui with integer array of encounter ids
-# construct basic queries that support caching.
-# for more complicated queries, caching may not work. utilize the returnQuery method within wcl.py.
-# process demonstrated in cachedReturnQuery of caching.py
-
-query = "{__schema {queryType {fields {name}}}}"
-query = """
-fragment FullType on __Type {
-  kind
-  name
-  fields {
-    name
-    args {
-      ...InputValue
-    }
-    type {
-      ...TypeRef
-    }
-  }
-  inputFields {
-    ...InputValue
-  }
-  interfaces {
-    ...TypeRef
-  }
-  enumValues {
-    name
-  }
-  possibleTypes {
-    ...TypeRef
-  }
-}
-fragment InputValue on __InputValue {
-  name
-  type {
-    ...TypeRef
-  }
-  defaultValue
-}
-fragment TypeRef on __Type {
-  kind
-  name
-  ofType {
-    kind
-    name
-    ofType {
-      kind
-      name
-      ofType {
-        kind
-        name
-        ofType {
-          kind
-          name
-          ofType {
-            kind
-            name
-            ofType {
-              kind
-              name
-              ofType {
-                kind
-                name
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-query IntrospectionQuery {
-  __schema {
-    queryType {
-      name
-    }
-    mutationType {
-      name
-    }
-    types {
-      ...FullType
-    }
-    directives {
-      name
-      locations
-      args {
-        ...InputValue
-      }
-    }
-  }
-}"""
-
-request = wcl.getRequest(query)
-requestJson = json.loads(request.text)
-identifier = {'path': 'cache/schema.json'}
-caching.dumpArtifact(requestJson, identifier)
+import math
 
 
-# reportCode = 'RL1v2DbxckJ9dTWq'
-# encounterIDBlacklist = []
+def castMS(time, r):
+    seconds = time / 1000
+    minutes = math.floor(seconds / 60)
+    hours = math.floor(minutes / 60)
+    oseconds = seconds - 60 * (minutes + 60 * hours)
+    return str(hours) + ':' + str(minutes) + ':' + str(oseconds)
 
+
+startTime = 106299762
+endTime = 108067141
+id = str(250)
+
+reportCode = 'rjkMQZYz6ALWnv21'
+encounterIDBlacklist = []
+
+# this needs defucking after rewrite
 # startTime, endTime, id = wcl.executeMenus(reportCode, encounterIDBlacklist)
 
-# # stagger absorb events
-# abilityID = '115069'
-# dataType = 'Healing'
-# fields = ['data', 'reportData', 'report', 'events', 'data']
-# absorbTicks = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
+# healing events targeting player
+dataType = 'Healing'
+events = {'translate': 'false', 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'targetID': id, 'dataType': dataType}
+heals = wcl.Events(events, reportCode)
 
-# # purification casts
-# abilityID = '119582'
-# dataType = 'Casts'
-# fields = ['data', 'reportData', 'report', 'events', 'data']
-# purificationCasts = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
+# # damage events targeting player
+dataType = 'DamageTaken'
+events = {'translate': 'false', 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'targetID': id, 'dataType': dataType}
+damage = wcl.Events(events, reportCode)
 
-# # stagger damage tick events
-# abilityID = '124255'
-# dataType = 'DamageTaken'
-# fields = ['data', 'reportData', 'report', 'events', 'data']
-# damageTicks = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
-
-# # brewmaster's rhythm
-# abilityID = '394797'
-# dataType = 'Buffs'
-# fields = ['data', 'reportData', 'report', 'events', 'data']
-# brewmasterRhythm = caching.cachedReturnQuery(reportCode, startTime, endTime, id, abilityID, dataType, fields)
-
-# print api points spent to console (so you can see if you're an idiot)
-wcl.pointsSpent()
-
-# this will get removed once the c++ implementation is completed. exists as notes until then.
+# # absorb buffs
+dataType = 'Buffs'
+events = {'translate': 'false', 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'targetID': id, 'dataType': dataType}
+absorb = wcl.Events(events, reportCode)
 
 # s = []
-# print(absorbTicks[0])
-# for k in absorbTicks:
-#     s.append({'timestamp':k['timestamp'],'niceTime':castMS(k['timestamp']-startTime, 3),'amountA':k['amount'],'event':'a'})
-
-# print(purificationCasts[0])
-# for k in purificationCasts:
-#     s.append({'timestamp':k['timestamp'],'niceTime':castMS(k['timestamp']-startTime, 3),'event':'p'})
-
-# print(damageTicks[0])
-# for k in damageTicks:
-#     s.append({'timestamp':k['timestamp'],'niceTime':castMS(k['timestamp']-startTime, 3),'amountT':k['unmitigatedAmount'],'event':'t'})
-
-# print(brewmasterRhythm[0])
-# for k in brewmasterRhythm:
-#     s.append({'timestamp':k['timestamp'],'niceTime':castMS(k['timestamp']-startTime, 3),'type':k['type'],'event':'s'})
-
+# for k in heals.data:
+#     if k['type'] == 'heal':
+#         s.append({'timestamp': k['timestamp'], 'niceTime': castMS(k['timestamp'] - startTime, 3), 'size': k.get('amount', 0) + k.get('overheal', 0), 'event': 'h'})
+# for k in damage.data:
+#     s.append({'timestamp': k['timestamp'], 'niceTime': castMS(k['timestamp'] - startTime, 3), 'size': k.get('amount', 0) + k.get('absorbed', 0), 'event': 'd'})
+# for k in absorb.data:
+#     if 'absorb' in k:
+#         if k['absorb'] != 0:
+#             s.append({'timestamp': k['timestamp'], 'niceTime': castMS(k['timestamp'] - startTime, 3), 'size': k.get('absorb', 0), 'event': 'a'})
 # s = sorted(s, key=lambda x: x['timestamp'])
+# for r in s:
+#     print(r['timestamp'],'\t',r['event'],'\t',r)
 
-# bnw = staggerFabrication(s, p=1)
-# opt = {'ticks':20,'purification':0.5,'t29':True,'dcheck':False}
-# base = staggerFabrication(s, opt, p=1)
+wcl.pointsSpent()
