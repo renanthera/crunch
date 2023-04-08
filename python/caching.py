@@ -68,6 +68,10 @@ def write_artifact(artifact, path):
     return 0
 
 
+def build_identifier(data):
+    return data | {'uuid': uuid.uuid4()}
+
+
 # def generate_path(identifier):
 #     return identifier['reportCode']+identifier['uuid']+'.json'
 
@@ -81,11 +85,6 @@ def write_artifact(artifact, path):
 #         if (k == identifier):
 #             return True
 #     return False
-
-
-def build_identifier(data):
-    return data | {'uuid': uuid.uuid4()}
-
 
 # def buildIdentifier(reportCode, startTime, endTime, id, abilityID, dataType):
 #     temp = {'reportCode': reportCode, 'startTime': startTime, 'endTime': endTime, 'id': id, 'abilityID': abilityID, 'dataType': dataType}

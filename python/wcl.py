@@ -90,7 +90,7 @@ class Events:
         self.cache = caching.Cache(self.identifier)
         self.data = []
         if self.cache.data is not None:
-            print('read',self.query(),'from cache')
+            print('read', self.query(), 'from cache')
             self.data = self.cache.data
         else:
             self.get_request()
@@ -108,7 +108,7 @@ class Events:
         return query + '){data nextPageTimestamp}'
 
     def get_request(self):
-        print('requesting',self.query())
+        print('requesting', self.query())
         temp = getRequest(completeQuery(self.code, self.query()))['data']['reportData']['report']['events']
         self.data += temp.get('data')
         if temp.get('nextPageTimestamp'):
