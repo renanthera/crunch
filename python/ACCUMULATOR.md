@@ -1,10 +1,16 @@
 I have several samples for all of the different behaviour from this week. In every case, inspect the Brewmaster Monk named "Katebruwu"
 
 Case 1: <https://www.warcraftlogs.com/reports/7xNnGhDMK19vtVYF#fight=1&source=20> (Incorrect accumulator, Valdrakken Cleave Target Dummies w/ other people)
+
 Case 2: <https://www.warcraftlogs.com/reports/7xNnGhDMK19vtVYF#fight=6&source=20> (Correct accumulator, Turnip Punching Bag, Solo, No White Tiger Statue / Niuzao)
+
 Case 3: <https://www.warcraftlogs.com/reports/7xNnGhDMK19vtVYF#fight=17&source=20> (Correct accumulator, Turnip Punching Bag, Solo, White Tiger Statue + Niuzao)
 
-Throughout the following two logs (excerpts of the first were used in the listed cases), there are several other samples of this behaviour. The impact varies, but I have not seen a case where I measure correct accumulator behaviour when fighting target dummies with other people also fighting them this week.
+
+
+Throughout the following two logs (excerpts of the first were used in the listed cases), there are several other samples of this behaviour.
+
+The impact varies, but I have not seen a case where I measure correct accumulator behaviour when fighting target dummies with other people also fighting them this week.
 
 <https://www.warcraftlogs.com/reports/7xNnGhDMK19vtVYF>
 <https://www.warcraftlogs.com/reports/4aJx3yLZnGVmtBWP>
