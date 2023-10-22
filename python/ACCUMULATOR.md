@@ -22,6 +22,7 @@ Test methodology notes:
 
 Measurement methodology notes:
 - Code can be found at <https://github.com/renanthera/crunch/tree/python-v2/python>. I apologize in advance, a lot of this is pretty old and commits many crimes.
+- All query configuration and data processing is done in `python/main.py`.
 - This system was working excellently previous weeks, and it matches up in Case 2 and Case 3 perfectly.
 - Using the WCL v2 API, acquire the following three queries given a `startTime`, `endTime`, `reportCode`, and `sourceID`. These examples are pre-filled for Case 1.
 ```
@@ -38,8 +39,18 @@ Measurement methodology notes:
 Possible test issues:
 - Cleave Dummy v Turnip behaviour could be different. Hard to control for unless I can somehow figure out what is causing it and reproduce it on a Turnip OR get a variety of specs to assist on a turnip.
 
-Script output:
+Data notes:
+- As Case 2 and 3 are accurate, this is highly probable to rule out monk/brm-specific behaviour causing the discrepancy in case 1 (and other samples).
+- I have noticed discrepancies going back a fair while with the accumulator, but the behaviours were understood to be caused by Chaos Brand, and then Crit (via CF) and Vers scaling the absorb.
+- The magnitude no longer matches up with Chaos Brand.
+- The magnitude also varies slightly. It is significant enough of a variance that it is improbable to be caused by roundoff behaviours.
+- The effect is pretty consistent throughout a single sample. This suggests that the effect that is causing the small variance has pretty high uptime and/or varies incredibly often.
+- The "varies often" hypothesis would result in events being logged, as relevant buff events would exist in the segment, unless the effect is not logged (despair).
+- The discrepancy could be caused by several effects simultaneously.
+- Case 1 had only had a single buff applied to my character. It is highly improbable that the source of the issue was Essence Font...
+- Case 1 had only a few candidates for possible debuffs causing the issue. Given how many problems currently exist around Sigil of Flame, it's not improbable that that is the cause.
 
+Script output:
 Case 1:
 ```
 Absorb: 54085
