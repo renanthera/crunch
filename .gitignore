@@ -10,6 +10,9 @@ python/package*
 python/credentials
 python/token.tk
 python/__pycache__
+python/bin
+python/lib
+python/lib64
 
 # cached queries
 cache

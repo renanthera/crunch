@@ -39,7 +39,7 @@ class Cache:
         return None
 
     def generate_path(self):
-        return '../cache/' + self.identifier['reportCode'] + '/' + str(self.uuid) + '.json'
+        return '../cache/artifacts/' + str(self.uuid) + '.json'
 
     def write_to_cache(self, data):
         self.data = data
@@ -62,14 +62,15 @@ def read_artifact(path):
 
 def write_artifact(artifact, path):
     json_object = json.dumps(artifact, indent=2)
+    # print(artifact)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as outfile:
         outfile.write(json_object)
     return 0
 
 
-def build_identifier(data):
-    return data | {'uuid': uuid.uuid4()}
+# def build_identifier(data):
+#     return data | {'uuid': uuid.uuid4()}
 
 
 # def generate_path(identifier):

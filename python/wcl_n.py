@@ -63,60 +63,169 @@ class Token:
 
 
 class Query:
-    def __init__(self):
-        self.query = ''
+    prefix = ''
+    kind = ''
+    suffix = ''
+
+    def __init__(self, args, fields):
+        self.args = args
+        self.fields = fields
+        self.query = self.stringify()
+
+    def stringify(self):
+        if (self.args is None):
+            query = self.prefix + self.kind
+        else:
+            query = self.prefix + self.kind + '('
+
+        if isinstance(self.args, str):
+            query += self.args + ' '
+        elif isinstance(self.args, dict):
+            for key, value in self.args.items():
+                if value is not None:
+                    query += key + ':' + str(value) + ' '
+        elif isinstance(self.args, set):
+            for value in self.args.items():
+                query += value + ' '
+
+        if (self.args is None):
+            query = query + '{'
+        else:
+            query = query[:-1] + '){'
+
+        if isinstance(self.fields, str):
+            query += self.fields + ' '
+        elif isinstance(self.fields, dict):
+            for key, value in self.fields.items():
+                if value is not None:
+                    query += key + ':' + str(value) + ' '
+        elif isinstance(self.fields, set):
+            for value in self.fields:
+                query += value + ' '
+        query = query[:-1] + '}' + self.suffix
+
+        return query
+
+    def update_query(self, args=None, fields=None):
+        if args is not None:
+            for key, value in args.items():
+                self.args.update({key: value})
+        if fields is not None:
+            for key, value in fields.items():
+                self.fields.update({key: value})
+        self.query = self.stringify()
+
+
+class Events(Query):
+
+    def __init__(self, reportCode, args, fields):
+        self.cache = True
+        self.prefix = '{reportData{report(code:"' + reportCode + '"){'
+        self.kind = 'events'
+        self.suffix = '}}}'
+        if (fields is None):
+            fields = 'data nextPageTimestamp'
+        super().__init__(args, fields)
+
+class ReportInfo(Query):
+    def __init__(self, reportCode):
+        self.cache = False
+        fields = 'id encounterID name difficulty  kill startTime endTime'
+        self.prefix = '{reportData{report(code:"' + reportCode + '"){'
+        self.kind = 'fights'
+        self.suffix = '}}}'
+        super().__init__(None, fields)
+
+class PlayerInfo(Query):
+    def __init__(self, reportCode, startTime, endTime):
+        args = {
+            'translate': 'false',
+            'startTime': startTime,
+            'endTime': endTime,
+        }
+        self.cache = False
+        self.prefix = '{reportData{report(code:"' + reportCode + '"){'
+        self.kind = 'playerDetails'
+        self.suffix = '}}'
+        super().__init__(args, None)
+
+class MasterData(Query):
+    def __init__(self, reportCode):
+        args = {
+            'translate': 'false'
+        }
+        fields = 'actors{id name type subType gameID}'
+        self.cache = False
+        self.prefix = '{reportData{report(code:"' + reportCode + '"){'
+        self.kind = 'masterData'
+        self.suffix = '}}}'
+        super().__init__(args, fields)
+
+
 
 class Request:
     v2endpoint = 'https://www.warcraftlogs.com/api/v2/client'
 
-    def __init__(self, fields, code):
+    def __init__(self, query):
         self.token = Token()
-        self.fields = fields
-        self.code = code
-        self.identifier = fields | {'reportCode': code} | {'OBJ': 'Events'}
-        self.cache = caching.Cache(self.identifier)
+        self.query = query
         self.data = []
-        if self.cache.data is not None:
-            print('read', self.query(), 'from cache')
-            self.data = self.cache.data
-        else:
-            self.get_request()
+        if self.query.cache:
+            self.cache = caching.Cache(self.query.query)
+            if self.cache.data is not None:
+                print('reading', self.query.query, 'from cache')
+                self.data = self.cache.data
+                return
+        self.get_entire_request()
+        if self.query.cache:
             self.cache.write_to_cache(self.data)
-
-    def update_query(self, update):
-        for key, value in update.items():
-            self.fields.update({key: value})
-
-    def query(self):
-        query = 'events('
-        for key, value in self.fields.items():
-            if value is not None:
-                query += key + ': ' + str(value) + ' '
-        return query + '){data nextPageTimestamp}'
-
-    def get_request(self):
-        print('requesting', self.query())
-        temp = getRequest(completeQuery(self.code, self.query()))['data']['reportData']['report']['events']
-        self.data += temp.get('data')
-        if temp.get('nextPageTimestamp'):
-            self.update_query({'startTime': temp.get('nextPageTimestamp')})
-            self.get_request()
-            return
         return
 
+    def get_entire_request(self):
+        body = self.get_request()
 
-def getRequest(query, failed=0):
-    token = readToken()
-    try:
-        request = requests.post(v2endpoint, headers={'Authorization': "Bearer " + token['access_token']}, data={'query': query})
-        if (request.text == "{\"error\":\"Unauthenticated.\"}"):
-            if (failed == 1):
-                print('Already failed once. Something\'s borked, fix it yourself.')
-                return -1
-            print('Unauthenticated. Attempting to obtain new token and re-run query.')
-            getToken()
-            return getRequest(query, failed=1)
-        return json.loads(request.text)
-    except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')
-        raise SystemExit
+        # i hate this solution, but i don't have any idea how to come up with something better right now
+        try:
+            payload = body['data']['reportData']['report'][self.query.kind]
+        except:
+            print('failed:')
+            print(body)
+            return
+        if isinstance(payload, dict):
+            self.data.append(payload.get('data'))
+            if payload.get('nextPageTimestamp'):
+                self.query.update_query({'startTime': payload.get('nextPageTimestamp')})
+                self.get_entire_request()
+                return
+            return
+        else:
+            self.data = payload
+        return
+
+    def get_request(self, failed=0):
+        print('requesting', self.query.query)
+        try:
+            request = requests.post(self.v2endpoint, headers={'Authorization': "Bearer " + self.token.token['access_token']}, data={'query': self.query.query})
+            if (request.text == "{\"error\":\"Unauthenticated.\"}"):
+                if (failed == 1):
+                    print('Already failed once. Something\'s borked, fix it yourself.')
+                    return -1
+                print('Unauthenticated. Attempting to obtain new token and re-run query.')
+                self.token.get()
+                return self.get_request(failed=1)
+            return json.loads(request.text)
+        except HTTPError as http_err:
+            print(f'HTTP error occurred: {http_err}')
+            raise SystemExit
+
+def getSegments(reportCode):
+    return Request(ReportInfo(reportCode))
+
+def getPlayerInfo(reportCode, startTime, endTime):
+    return Request(PlayerInfo(reportCode, startTime, endTime))
+
+def getMasterData(reportCode):
+    return Request(MasterData(reportCode))
+
+def getEvents(reportCode, fields, args):
+    return Request(Events(reportCode, args, fields))
