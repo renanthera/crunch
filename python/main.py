@@ -42,12 +42,12 @@ startTime = 34
 endTime = 317258
 
 # Turnip Target Dummy in Africa w/o Catue + Niuzao (CASE 2)
-# startTime = 1279095
-# endTime = 1573769
+startTime = 1279095
+endTime = 1573769
 
 # Turnip Target Dummy in Africa w/ Catue + Niuzao (CASE 3)
-# startTime = 10116755
-# endTime = 10416126
+startTime = 10116755
+endTime = 10416126
 
 
 # gather player info to enter player id
