@@ -1,5 +1,5 @@
 import wcl
-import wcl_n
+import wcl_requests
 import math
 import time
 
@@ -28,8 +28,6 @@ def t(ms):
 def p(d):
     for e in d.data:
         print(e)
-
-wcl.pointsSpent()
 
 def reports():
     return {
@@ -325,7 +323,7 @@ def tier_proc_analysis(info):
     # print(triggers_total, triggers_2p, triggers_4p, candidates_4p)
     print(ratio)
 
-runReports(tier_proc_analysis)
+# runReports(tier_proc_analysis)
 # runReports(tier_guard_analysis)
 
-wcl.pointsSpent()
+wcl_requests.Request(wcl_requests.PointsSpent())

@@ -6,8 +6,6 @@ import time
 from requests.exceptions import HTTPError
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
-from tabulate import tabulate
-
 
 class Token:
     tokenURI = 'https://www.warcraftlogs.com/oauth/token'
@@ -60,7 +58,6 @@ class Token:
             data = handle.read()
         data = str(data).split('\'')
         return data[1], data[3]
-
 
 class Query:
     prefix = ''
@@ -115,9 +112,7 @@ class Query:
                 self.fields.update({key: value})
         self.query = self.stringify()
 
-
 class Events(Query):
-
     def __init__(self, reportCode, args, fields):
         self.cache = True
         self.prefix = '{reportData{report(code:"' + reportCode + '"){'
@@ -161,7 +156,13 @@ class MasterData(Query):
         self.suffix = '}}}'
         super().__init__(args, fields)
 
-
+class PointsSpent(Query):
+    def __init__(self):
+        self.cache = False
+        self.prefix = '{rateLimitData{'
+        self.kind = 'pointsSpentThisHour'
+        self.suffix = '}'
+        super().__init__(None, None)
 
 class Request:
     v2endpoint = 'https://www.warcraftlogs.com/api/v2/client'
@@ -188,6 +189,10 @@ class Request:
         try:
             payload = body['data']['reportData']['report'][self.query.kind]
         except:
+            if body['data']['rateLimitData']['pointsSpentThisHour']:
+                self.data = body['data']['rateLimitData']['pointsSpentThisHour']
+                print(str(self.data) + '/3600')
+                return
             print('failed:')
             print(body)
             return

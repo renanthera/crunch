@@ -1,21 +1,16 @@
 # emacs
 .\#*
 
-# c++
-build
-crunch
-
 # python
-python/package*
-python/credentials
-python/token.tk
-python/__pycache__
-python/bin
-python/lib
-python/lib64
+__pycache__
+bin
+lib
+lib64
+pyvenv.cfg
 
-# cached queries
+# credentials
+credentials
+token.tk
+
+# cache
 cache
-
-# misc
-temp*
