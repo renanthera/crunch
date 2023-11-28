@@ -1,7 +1,7 @@
 import requests
 import json
 import pickle
-import caching
+from . import caching
 import time
 from requests.exceptions import HTTPError
 from oauthlib.oauth2 import BackendApplicationClient

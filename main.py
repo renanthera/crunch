@@ -1,5 +1,4 @@
 import wcl
-import wcl_requests
 import math
 import time
 
@@ -150,7 +149,7 @@ def getSegments():
     complete = isComplete()
     for k, v in complete.items():
         if not v:
-            p(wcl_n.getSegments(k))
+            p(wcl.getSegments(k))
 
 def getPlayerInfo():
     complete = isComplete()
@@ -162,7 +161,7 @@ def getPlayerInfo():
             continue
         if not complete.get(reportCode):
             print(u)
-            wcl_n.printPlayerInfo(reportCode, startTime, endTime)
+            wcl.printPlayerInfo(reportCode, startTime, endTime)
 
 def runReports(fn):
     for name, info in reports().items():
@@ -172,16 +171,16 @@ def runReports(fn):
 getSegments()
 getPlayerInfo()
 
-# p(wcl_n.getMasterData(reportCode))
+# p(wcl.getMasterData(reportCode))
 
 def tier_guard_analysis(info):
     reportCode = info.get('reportCode')
     startTime = info.get('startTime')
     endTime = info.get('endTime')
     id = info.get('id')
-    charred_dreams                 = wcl_n.getEvents(reportCode, None, {'dataType': 'DamageDone', 'abilityID': 425299, 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'sourceID': id})
-    shadowflame_wreathe            = wcl_n.getEvents(reportCode, None, {'dataType': 'DamageDone', 'abilityID': 406764, 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'sourceID': id})
-    celestial_brew                 = wcl_n.getEvents(reportCode, None, {'dataType': 'Buffs', 'abilityID':      425965, 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'sourceID': id})
+    charred_dreams                 = wcl.getEvents(reportCode, None, {'dataType': 'DamageDone', 'abilityID': 425299, 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'sourceID': id})
+    shadowflame_wreathe            = wcl.getEvents(reportCode, None, {'dataType': 'DamageDone', 'abilityID': 406764, 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'sourceID': id})
+    celestial_brew                 = wcl.getEvents(reportCode, None, {'dataType': 'Buffs', 'abilityID':      425965, 'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'sourceID': id})
     charred_dreams_data            = list(chain.from_iterable(charred_dreams.data))
     shadowflame_wreathe_data       = list(chain.from_iterable(shadowflame_wreathe.data))
     celestial_brew_data            = list(chain.from_iterable(celestial_brew.data))
@@ -237,7 +236,7 @@ def tier_proc_analysis(info):
     name = info.get('name')
 
     filter_exprn = "\"source.name = '" + name + "' and ((type in ('applydebuff', 'removedebuff') and ability.id = 123725) or (type = 'damage'))\""
-    events       = wcl_n.getEvents(reportCode, None, {'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'filterExpression': filter_exprn, 'sourceID': id})
+    events       = wcl.getEvents(reportCode, None, {'startTime': startTime, 'endTime': endTime, 'useAbilityIDs': 'true', 'filterExpression': filter_exprn, 'sourceID': id})
     data        = list(chain.from_iterable(events.data))
 
     debuff_active = defaultdict(int)
@@ -326,4 +325,4 @@ def tier_proc_analysis(info):
 # runReports(tier_proc_analysis)
 # runReports(tier_guard_analysis)
 
-wcl_requests.Request(wcl_requests.PointsSpent())
+wcl.Request(wcl.PointsSpent())

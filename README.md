@@ -1,3 +1,5 @@
+Consumes the WCL API for analysis. Analyzers exist for Brewmaster effects.
+
 in `python/credentials` place the following data:
 
 ```
