@@ -1,8 +1,8 @@
 import wcl
 import math
-import time
+import json
 
-import Stagger
+from analyzers import Stagger
 
 from itertools import chain
 from collections import defaultdict
@@ -325,4 +325,23 @@ def tier_proc_analysis(info):
 # runReports(tier_proc_analysis)
 # runReports(tier_guard_analysis)
 
-wcl.Request(wcl.PointsSpent())
+# wcl.Request(wcl.PointsSpent())
+# wcl.getPointsSpent()
+
+tmpa = wcl.query.PlayerDetails('1234', 1, 2)
+tmpb = wcl.query.MasterData('1234')
+tmpc = wcl.query.PointsSpentThisHour()
+tmpd = wcl.query.Fights('1234')
+args = {'startTime': 1, 'endTime': 2, 'useAbilityIDs': 'true', 'filterExpression': 'str', 'sourceID': '1'}
+tmpe = wcl.query.Events('1234', args)
+# print(json.dumps(tmpa.components, indent=2))
+# print(json.dumps(tmpb.components, indent=2))
+
+tmp2 = wcl.query.Query()
+# tmp2.add_tree(tmpa)
+# tmp2.add_tree(tmpb)
+tmp2.add_tree(tmpc)
+tmp2.add_tree(tmpd)
+tmp2.add_tree(tmpe)
+tmp2.stringify_trees()
+print(tmp2.query_strings)
