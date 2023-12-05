@@ -7,63 +7,62 @@ import uuid
 # stringified and is ready to be passed as a Request.
 
 class Cache:
-    cache_root = 'cache'
-    cache_index = cache_root + '/index.json'
-    cache_artifacts = cache_root + '/artifacts/'
+  cache_root = 'cache'
+  cache_index = cache_root + '/index.json'
+  cache_artifacts = cache_root + '/artifacts/'
 
-    def __init__(self):
-        self.cache = read_artifact(self.cache_index)
-        if self.cache is None:
-            self.initialize_cache()
-            self.cache = read_artifact(self.cache_index)
-        assert(self.cache is not None)
+  def __init__( self ):
+    self.cache = read_artifact( self.cache_index )
+    if self.cache is None:
+      self.initialize_cache()
+      self.cache = read_artifact( self.cache_index )
+    assert ( self.cache is not None )
 
-    def initialize_cache(self):
-        init = []
-        write_artifact(init, self.cache_index)
+  def initialize_cache( self ):
+    init = []
+    write_artifact( init, self.cache_index )
 
-    def get_artifact(self, identifier):
-        self.artifact = None
-        self.uuid = self.lookup_uuid(identifier)
+  def get_artifact( self, identifier ):
+    self.artifact = None
+    self.uuid = self.lookup_uuid( identifier )
 
-        if self.uuid is None:
-            self.uuid = uuid.uuid4()
-        self.path = self.generate_path()
-        self.artifact = read_artifact(self.path)
+    if self.uuid is None:
+      self.uuid = uuid.uuid4()
+    self.path = self.generate_path()
+    self.artifact = read_artifact( self.path )
 
-        return self.artifact
+    return self.artifact
 
-    def put_artifact(self, identifier, data):
-        self.data = data
-        payload = {
-            'identifier': identifier,
-            'uuid': str(self.uuid)
-        }
+  def put_artifact( self, identifier, data ):
+    self.data = data
+    payload = {
+      'identifier': identifier,
+      'uuid': str( self.uuid )
+    }
 
-        self.cache.append(payload) # type: ignore
-        write_artifact(self.cache, self.cache_index)
-        write_artifact(self.data, self.path)
+    self.cache.append( payload ) # type: ignore
+    write_artifact( self.cache, self.cache_index )
+    write_artifact( self.data, self.path )
 
-    def lookup_uuid(self, identifier):
-        for entry in self.cache: # type: ignore
-            if entry['identifier'] == identifier:
-                return entry['uuid']
-        return None
+  def lookup_uuid( self, identifier ):
+    for entry in self.cache: # type: ignore
+      if entry[ 'identifier' ] == identifier:
+        return entry[ 'uuid' ]
+    return None
 
-    def generate_path(self):
-        return self.cache_artifacts + str(self.uuid) + '.json'
+  def generate_path( self ):
+    return self.cache_artifacts + str( self.uuid ) + '.json'
 
-def read_artifact(path):
-    if not os.path.isfile(path):
-        return None
-    with open(path, 'r') as openfile:
-        json_object = json.load(openfile)
-    return json_object
+def read_artifact( path ):
+  if not os.path.isfile( path ):
+    return None
+  with open( path, 'r' ) as openfile:
+    json_object = json.load( openfile )
+  return json_object
 
-
-def write_artifact(artifact, path):
-    json_object = json.dumps(artifact, indent=2)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as outfile:
-        outfile.write(json_object)
-    return 0
+def write_artifact( artifact, path ):
+  json_object = json.dumps( artifact, indent=2 )
+  os.makedirs( os.path.dirname( path ), exist_ok=True )
+  with open( path, "w" ) as outfile:
+    outfile.write( json_object )
+  return 0
