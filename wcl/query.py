@@ -1,230 +1,174 @@
-# class Query:
-#     prefix = ''
-#     kind = ''
-#     suffix = ''
-
-#     def __init__(self, args, fields):
-#         self.args = args
-#         self.fields = fields
-#         self.query = self.stringify()
-
-#     def stringify(self):
-#         if (self.args is None):
-#             query = self.prefix + self.kind
-#         else:
-#             query = self.prefix + self.kind + '('
-
-#         if isinstance(self.args, str):
-#             query += self.args + ' '
-#         elif isinstance(self.args, dict):
-#             for key, value in self.args.items():
-#                 if value is not None:
-#                     query += key + ':' + str(value) + ' '
-#         elif isinstance(self.args, set):
-#             for value in self.args.items():
-#                 query += value + ' '
-
-#         if (self.args is None):
-#             query = query + '{'
-#         else:
-#             query = query[:-1] + '){'
-
-#         if isinstance(self.fields, str):
-#             query += self.fields + ' '
-#         elif isinstance(self.fields, dict):
-#             for key, value in self.fields.items():
-#                 if value is not None:
-#                     query += key + ':' + str(value) + ' '
-#         elif isinstance(self.fields, set):
-#             for value in self.fields:
-#                 query += value + ' '
-#         query = query[:-1] + '}' + self.suffix
-
-#         return query
-
-#     def update_query(self, args=None, fields=None):
-#         if args is not None:
-#             for key, value in args.items():
-#                 self.args.update({key: value})
-#         if fields is not None:
-#             for key, value in fields.items():
-#                 self.fields.update({key: value})
-#         self.query = self.stringify()
-def parent_components( Parent, *args ):
-  return Parent( *args ).components
-
-class GraphQLObject:
-  def __init__(self, *params):
-    self.params = params
-    self.components = {}
-    self.complete = False
-    self.cache = False
-
-class ReportData(GraphQLObject):
-  def __init__( self, children ):
-    super().__init__(children)
-    self.components = {
-      'name': 'reportData',
-      'fields': [ children ]
-    }
-
-class Report:
-  def __init__( self, children, reportCode ):
-    self.components = parent_components(
-      ReportData,
-      {
-        'name': 'report',
-        'args': {
-          'code': reportCode
-        },
-        'fields': [ children ]
-      }
-    )
-
-class PlayerDetails:
-  def __init__( self, reportCode, startTime, endTime ):
-    self.components = parent_components(
-      Report,
-      {
-        'name': 'playerDetails',
-        'args': {
-          'translate': 'false',
-          'startTime': startTime,
-          'endTime': endTime
-        }
-      },
-      reportCode
-    )
-
-class MasterData:
-  def __init__( self, reportCode ):
-    self.components = parent_components(
-      Report,
-      {
-        'name': 'masterData'
-      },
-      reportCode
-    ) # yapf: disable
-
-class RateLimitData:
-  def __init__( self, children ):
-    self.components = {
-      'name': 'rateLimitData',
-      'fields': [ children ]
-    }
-
-class PointsSpentThisHour:
-  def __init__( self ):
-    self.components = parent_components(
-      RateLimitData,
-      {
-        'name': 'pointsSpentThisHour'
-      }
-    ) # yapf: disable
-
-class Fights:
-  def __init__( self, reportCode ):
-    self.components = parent_components(
-      Report,
-      {
-        'name':
-        'fights',
-        'fields': [
-          {
-            'name': 'id'
-          },
-          {
-            'name': 'encounterID',
-          },
-          {
-            'name': 'name'
-          },
-          {
-            'name': 'difficulty'
-          },
-          {
-            'name': 'kill'
-          },
-          {
-            'name': 'startTime'
-          },
-          {
-            'name': 'endTime'
-          },
-        ]
-      },
-      reportCode
-    )
-
-class Events:
-  def __init__( self, reportCode, args ):
-    self.components = parent_components(
-      Report,
-      {
-        'name': 'events',
-        'args': args,
-        'fields': [ {
-          'name': 'data'
-        },
-                    {
-                      'name': 'nextPageTimestamp'
-                    } ]
-      },
-      reportCode
-    )
-
-import json
-import functools
-
 class Query:
-  # TODO: MERGE QUERIES USING GENERATED ALIASES
-  # TODO: UPDATE QUERIES TO FULLY PAGINATE RESULT
   # TODO: REWORK REQUEST
-  def __init__( self ):
-    self.query_trees = []
-    self.query_strings = []
+  parent = None
+  cacheable = True
 
-  def add_tree( self, query_tree ):
-    self.query_trees.append( query_tree )
+  def components( self ):
+    pass
 
-  def merge_trees( self ):
-    # find if any queries of the same type with different parameters exists
-    self.query_tree = {}
-    for tree in self.query_trees:
-      print( tree.components )
-      mergeable_count = functools.reduce(
-        lambda a, b: a + b, # yapfify: disable
-        [ type( tree ) is type( t ) and tree != t for t in self.query_trees ]
-      )
-      print( mergeable_count )
+  def __init__( self, params, cacheable=None ):
+    self.params = params.copy()
+    self.tree = self.create_tree()
+    self.string = self.stringify()
+    self.cacheable = cacheable if cacheable is not None else self.cacheable
 
-  def stringify_trees( self ):
-    def recurse_tree( current ):
-      name = current.get( 'name' )
-      alias = current.get( 'alias' )
+  def update( self, params ):
+    assert len(params) == len(self.params), 'Updating params with the incorrect number of elements'
+    assert set( params ) == set( self.params ), 'Updated keys do not match'
+    assert all([ type(self.params.get(key)) is type(params.get(key)) or params.get(key) is None for key in self.params]), 'Types of values do not match'
+    assert params != self.params, 'Params are unchanged'
+
+    self.params.update( params )
+    self.tree = self.create_tree()
+
+  def create_tree( self ):
+    self.params.update( {
+      'children': self.components()
+    } )
+
+    if self.parent is None:
+      return self.params.get( 'children' )
+    return self.parent( self.params ).tree
+
+  def stringify( self ):
+    def recurse_nodes( node ):
+      alias = node.get( 'alias' )
+      name = node.get( 'name' )
       args = []
-      if current.get( 'args' ):
-        args = [ str( k ) + ': ' + str( v ) for k, v in current.get( 'args' ).items() ]
-      children = []
-      if current.get( 'fields' ):
-        children = [ recurse_tree( tree ) for tree in current.get( 'fields' ) ]
+      fields = []
+      if node.get( 'args' ):
+        # wrap all string values in double quotes if not already wrapped
+        for key in node.get( 'args' ).keys():
+          if isinstance(
+              node.get( 'args' ).get( key ),
+              str ) and node.get( 'args' ).get( key )[ 0 ] != '"' and node.get( 'args' ).get(
+                key ) != 'true' and node.get( 'args' ).get( key ) != 'false':
+            node.get( 'args' )[ key ] = '"' + node.get( 'args' )[ key ] + '"'
+          if isinstance( node.get( 'args' ).get( key ), bool ):
+            node.get( 'args' )[ key ] = 'true' if node.get( 'args' ).get( 'key' ) else 'false'
+        args = [ str( key ) + ': ' + str( value ) for key, value in node.get( 'args' ).items() ]
+      if node.get( 'fields' ):
+        fields = [ recurse_nodes( child ) for child in node.get( 'fields' ) ]
 
-      alias_str = ''
-      if alias:
-        alias_str = alias + ': '
-      args_str = ''
-      if args:
-        args_str = '(' + ', '.join( args ) + ')'
-      children_str = ''
-      if children:
-        children_str = '{' + ', '.join( children ) + '}'
+      alias_str = alias + ': ' if alias else ''
+      args_str = '(' + ', '.join( args ) + ')' if args else ''
+      fields_str = '{' + ', '.join( fields ) + '}' if fields else ''
 
-      return alias_str + name + args_str + children_str
+      return alias_str + name + args_str + fields_str
 
-    print( 'stringifying...' )
-    self.query_strings = []
-    for tree in self.query_trees:
-      query = '{' + recurse_tree( tree.components ) + '}'
-      self.query_strings.append( query )
-      print( query )
-      print( json.dumps( tree.components, indent=2 ) )
+    return '{' + recurse_nodes( self.tree ) + '}'
+
+# TODO: Generate this from GraphQL schema
+
+# dict.get method wraps lists in tuples for some reason
+def process_fields( fields ):
+  if isinstance( fields, tuple ):
+    return [ *fields ]
+  return [ fields ]
+
+class ReportData( Query ):
+  def components( self ):
+    return {
+      'name': 'reportData',
+      'fields': process_fields( self.params.get( 'children' ) )
+    }
+
+class Report( Query ):
+  parent = ReportData
+
+  def components( self ):
+    return {
+      'name': 'report',
+      'args': {
+        'code': self.params.get( 'reportCode' )
+      },
+      'fields': process_fields( self.params.get( 'children' ) )
+    }
+
+class PlayerDetails( Query ):
+  parent = Report
+
+  def components( self ):
+    return {
+      'name': 'playerDetails',
+      'args': {
+        'translate': False,
+        'startTime': self.params.get( 'startTime' ),
+        'endTime': self.params.get( 'endTime' )
+      }
+    }
+
+class MasterData( Query ):
+  parent = Report
+
+  def components( self ):
+    return {
+      'name': 'masterData'
+    }
+
+class RateLimitData( Query ):
+  def components( self ):
+    return {
+      'name': 'rateLimitData',
+      'fields': process_fields( self.params.get( 'children' ) )
+    }
+
+class PointsSpentThisHour( Query ):
+  parent = RateLimitData
+  cacheable = False
+
+  def components( self ):
+    return {
+      'name': 'pointsSpentThisHour'
+    }
+
+class Fights( Query ):
+  parent = Report
+
+  def components( self ):
+    return {
+      'name':
+      'fights',
+      'fields': [
+        {
+          'name': 'id'
+        },
+        {
+          'name': 'encounterID',
+        },
+        {
+          'name': 'name'
+        },
+        {
+          'name': 'difficulty'
+        },
+        {
+          'name': 'kill'
+        },
+        {
+          'name': 'startTime'
+        },
+        {
+          'name': 'endTime'
+        },
+      ]
+    },
+
+class Events( Query ):
+  parent = Report
+
+  def components( self ):
+    return {
+      'name': 'events',
+      'args': {
+        **self.params.get( 'args' ),
+        'startTime': self.params.get( 'startTime' ),
+        'endTime': self.params.get( 'endTime' )
+      },
+      'fields': [ {
+        'name': 'data'
+      },
+                  {
+                    'name': 'nextPageTimestamp'
+                  } ]
+    }

@@ -1,33 +1,51 @@
-from .requests import *
-from .query import *
+import json
 
-def getSegments( reportCode ):
-  return Request( ReportInfo( reportCode ) )
+from . import query
+from .requests import Request
 
-def getPlayerInfo( reportCode, startTime, endTime ):
-  return Request( PlayerInfo( reportCode, startTime, endTime ) )
+def getFights( params ):
+  return Request( query.Fights( params ) )
 
-def getMasterData( reportCode ):
-  return Request( MasterData( reportCode ) )
+def getPlayerDetails( params ):
+  return Request( query.PlayerDetails( params ) )
 
-def getEvents( reportCode, fields, args ):
-  return Request( Events( reportCode, args, fields ) )
+def getMasterData( params ):
+  return Request( query.MasterData( params ) )
 
-def printPlayerInfo( reportCode, startTime, endTime ):
-  req = getPlayerInfo( reportCode, startTime, endTime )
-  assert(req.data is not None)
-  for entry in req.data:
-    players = entry.get( 'playerDetails' )
-    for role, player_list in players.items():
-      print( '  ', role )
-      for player in player_list:
-        print(
-          '    ',
-          player.get( 'id' ),
-          player.get( 'name' ),
-          player.get( 'type' ),
-          player.get( 'specs' ),
-        )
+def getEvents( params ):
+  return Request( query.Events( params ) ).data.get('data') # pyright: ignore
+
+def printFights( params ):
+  req = getFights( params )
+  assert req.data is not None, 'No fights data returned'
+
+  fights = [ {
+    'id': fight.get( 'id' ),
+    'name': fight.get( 'name' ),
+    'difficulty': fight.get( 'difficulty' ),
+    'kill': fight.get( 'kill' ),
+    'startTime': fight.get( 'startTime' ),
+    'endTime': fight.get( 'endTime' )
+  } for fight in req.data ]
+
+  for fight in fights:
+    print( json.dumps( fight, indent=2 ) )
+
+def printPlayerDetails( params ):
+  req = getPlayerDetails( params )
+  assert req.data is not None
+
+  for role, player_list in req.data.get( 'data' ).get( 'playerDetails' ).items():
+    players = [ {
+      'id': player.get( 'id' ),
+      'name': player.get( 'name' ),
+      'type': player.get( 'type' ),
+      'specs': player.get( 'specs' )
+    } for player in player_list ]
+    print( role )
+    for player in players:
+      print( json.dumps( player, indent=2 ) )
 
 def getPointsSpent():
-  return Request( PointsSpent() )
+  params = {}
+  return print( Request( query.PointsSpentThisHour( params ) ).data.get('pointsSpentThisHour'), 'points spent')

@@ -46,7 +46,7 @@ class Cache:
 
   def lookup_uuid( self, identifier ):
     for entry in self.cache: # type: ignore
-      if entry[ 'identifier' ] == identifier:
+      if entry.get('identifier') == identifier:
         return entry[ 'uuid' ]
     return None
 
