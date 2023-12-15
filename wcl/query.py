@@ -42,7 +42,7 @@ class Query:
           if isinstance(
               node.get( 'args' ).get( key ),
               str ) and node.get( 'args' ).get( key )[ 0 ] != '"' and node.get( 'args' ).get(
-                key ) != 'true' and node.get( 'args' ).get( key ) != 'false':
+                key ) != 'true' and node.get( 'args' ).get( key ) != 'false' and node.get('args').get(key) != 'Debuffs':
             node.get( 'args' )[ key ] = '"' + node.get( 'args' )[ key ] + '"'
           if isinstance( node.get( 'args' ).get( key ), bool ):
             node.get( 'args' )[ key ] = 'true' if node.get( 'args' ).get( 'key' ) else 'false'

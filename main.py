@@ -386,33 +386,7 @@ import wcl
 
 # import json
 
-params = {
-  'reportCode': 'YftHvBKJzh8nxa9A'
-}
+import analyzers
 
-# wcl.printFights( params )
-
-params.update( {
-  # 'startTime': 1,
-  # 'endTime': 2
-  'startTime': 1116245,
-  'endTime': 1275511
-} # pyright: ignore
-              )
-
-# wcl.printPlayerDetails( params )
-
-params.update(
-  {
-    'args': { # pyright: ignore
-      'sourceID': 16,
-    }
-  }
-)
-
-# temp = wcl.getEvents( params )
-
-import json
-# print(json.dumps(temp, indent=2))
-
-# wcl.getPointsSpent()
+analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
+wcl.getPointsSpent()

@@ -10,7 +10,7 @@ class Request:
   cache = caching.Cache()
   token = token.Token()
 
-  DEBUG = True
+  DEBUG = False
 
   def __init__( self, query ):
     self.query = query
