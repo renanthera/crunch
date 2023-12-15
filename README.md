@@ -1,11 +1,9 @@
-Consumes the WCL API for analysis. Analyzers exist for Brewmaster effects.
+Warcraftlogs module in `wcl/` provides query objects to create queries, complete requests and cache the result.
+Analyzers module in `analyzers/` provides some examples for analyzers.
 
-in `credentials` place the following data:
+To use this, you must first place the following in `credentials`:
 
 ```
 clientID = 'WCL v2 CLIENT ID'
 clientSecret = 'WCL v2 CLIENT SECRET'
 ```
-
-Note that I don't think the python venv configuration is portable. You might have
-to alter it yourself.
