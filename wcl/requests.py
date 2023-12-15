@@ -88,10 +88,5 @@ class Request:
 
     return body
 
-    # print(json.dumps(self.query.tree, indent=2))
-
-    # based on query, drill down to data
-    # add to data member
-    # determine if pagniated
-    # request if paginated
-    # repeat
+  # TODO: impl pagination
+  # TODO: better object resolution

@@ -37,8 +37,8 @@ class Query:
       args = []
       fields = []
       if node.get( 'args' ):
-        # wrap all string values in double quotes if not already wrapped
         for key in node.get( 'args' ).keys():
+          # TODO: better formatting for enum, boolean and string types
           if isinstance(
               node.get( 'args' ).get( key ),
               str ) and node.get( 'args' ).get( key )[ 0 ] != '"' and node.get( 'args' ).get(

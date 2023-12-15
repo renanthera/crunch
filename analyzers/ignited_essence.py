@@ -1,9 +1,5 @@
 import wcl
 
-params = {
-  'reportCode': 'YftHvBKJzh8nxa9A'
-}
-
 def ignited_essence( reportCodes ):
   for reportCode in reportCodes:
     print( '===================================' )
@@ -21,8 +17,8 @@ def ignited_essence( reportCodes ):
 
     fights = wcl.getFights( params )
     fights = [
-      fight for fight in fights.data if fight.get( 'name' ) == 'Smolderon'
-    ] # pyright: ignore
+      fight for fight in fights.data if fight.get( 'name' ) == 'Smolderon' # pyright: ignore
+    ]
 
     fight_offset = fights[ 0 ].get( 'id' )
 
@@ -33,13 +29,13 @@ def ignited_essence( reportCodes ):
         'endTime': fight.get( 'endTime' )
       } )
 
-      players = wcl.getPlayerDetails( params ).data.get( 'data' ).get(
+      players = wcl.getPlayerDetails( params ).data.get( 'data' ).get( # pyright: ignore
         'playerDetails'
-      ) # pyright: ignore
+      )
       players = [ char for role in players.values() for char in role ]
 
       def get_player_name( id ):
-        for player in players: # pyright: ignore
+        for player in players:
           if player.get( 'id' ) == id:
             return player.get( 'name' )
 
