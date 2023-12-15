@@ -2,6 +2,10 @@ class Query:
   # TODO: REWORK REQUEST
   parent = None
   cacheable = True
+  paginator = {
+    'paginationField': None,
+    'overrides': None
+  }
 
   def components( self ):
     pass
@@ -13,8 +17,8 @@ class Query:
     self.cacheable = cacheable if cacheable is not None else self.cacheable
 
   def update( self, params ):
-    assert len(params) == len(self.params), 'Updating params with the incorrect number of elements'
-    assert set( params ) == set( self.params ), 'Updated keys do not match'
+    # assert len(params) == len(self.params), 'Updating params with the incorrect number of elements'
+    # assert set( params ) == set( self.params ), 'Updated keys do not match'
     assert all([ type(self.params.get(key)) is type(params.get(key)) or params.get(key) is None for key in self.params]), 'Types of values do not match'
     assert params != self.params, 'Params are unchanged'
 
@@ -124,6 +128,7 @@ class PointsSpentThisHour( Query ):
 
 class Fights( Query ):
   parent = Report
+  cacheable = False
 
   def components( self ):
     return {
@@ -156,6 +161,10 @@ class Fights( Query ):
 
 class Events( Query ):
   parent = Report
+  paginator = {
+    'paginationField': 'nextPageTimestamp',
+    'overrides': 'startTime'
+  }
 
   def components( self ):
     return {

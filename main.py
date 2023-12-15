@@ -388,5 +388,6 @@ import wcl
 
 import analyzers
 
-analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
+# analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
+analyzers.ignited_essence( [ 'qWJXamNtPbTfZ41y' ] )
 wcl.getPointsSpent()

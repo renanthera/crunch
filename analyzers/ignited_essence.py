@@ -10,28 +10,32 @@ def ignited_essence( reportCodes ):
       'startTime': 0,
       'endTime': 1e30,
       'args': {
-        'dataType': 'Debuffs',
-        'abilityID': 421858
+        'filterExpression':
+        'ability.id in (421858, 421643) or (type = \'cast\' and ability.id = 422277)'
       }
     }
 
     fights = wcl.getFights( params )
+
+    # TODO: better method for detecting if a fight is a reset
     fights = [
-      fight for fight in fights.data if fight.get( 'name' ) == 'Smolderon' # pyright: ignore
+      fight for fight in fights.data # pyright: ignore
+      if fight.get( 'name' ) == 'Smolderon' and fight.get( 'endTime' ) -
+      fight.get( 'startTime' ) > 1000
     ]
 
-    fight_offset = fights[ 0 ].get( 'id' )
+    for fight in range( len( fights ) ):
+      print( fight + 1 )
 
-    for fight in fights:
-      print( fight.get( 'id' ) - fight_offset + 1 )
       params.update( {
-        'startTime': fight.get( 'startTime' ),
-        'endTime': fight.get( 'endTime' )
+        'startTime': fights[ fight ].get( 'startTime' ),
+        'endTime': fights[ fight ].get( 'endTime' )
       } )
 
-      players = wcl.getPlayerDetails( params ).data.get( 'data' ).get( # pyright: ignore
-        'playerDetails'
-      )
+      players = wcl.getPlayerDetails( params ).data.get( 'data' # pyright: ignore
+                                                        ).get( # pyright: ignore
+                                                          'playerDetails'
+                                                        )
       players = [ char for role in players.values() for char in role ]
 
       def get_player_name( id ):
@@ -39,21 +43,46 @@ def ignited_essence( reportCodes ):
           if player.get( 'id' ) == id:
             return player.get( 'name' )
 
-      debuff_tracker = {}
       events = wcl.getEvents( params )
-      for event in events:
+
+      emberscar_mark = {}
+      ignited_essence = {}
+      slam_count = 1
+
+      for event in events: # pyright: ignore
         sourceID = event.get( 'sourceID' )
-        match event.get( 'type' ):
-          case 'applydebuffstack':
-            stack = event.get( 'stack' )
-            debuff_tracker.update( {
-              sourceID: stack
-            } )
-          case 'applydebuff':
-            debuff_tracker.update( {
-              sourceID: 1
-            } )
-          case 'removedebuff':
-            if debuff_tracker.get( sourceID ) != 5:
-              print( '-', get_player_name( sourceID ), debuff_tracker.get( sourceID ) )
-            debuff_tracker.pop( event.get( 'sourceID' ) )
+        targetID = event.get( 'targetID' )
+        match event.get( 'abilityGameID' ):
+          case 421858:
+            match event.get( 'type' ):
+              case 'applydebuffstack':
+                stack = event.get( 'stack' )
+                ignited_essence.update( {
+                  sourceID: stack
+                } )
+              case 'applydebuff':
+                ignited_essence.update( {
+                  sourceID: 1
+                } )
+              case 'removedebuff':
+                if ignited_essence.get( sourceID ) != 5:
+                  print( '   ', get_player_name( sourceID ), ignited_essence.get( sourceID ) )
+                ignited_essence.pop( event.get( 'sourceID' ) )
+          case 421643:
+            match event.get( 'type' ):
+              case 'applydebuff':
+                emberscar_mark.update( {
+                  targetID: 1
+                } )
+              case 'removedebuff':
+                emberscar_mark.update( {
+                  targetID: 0
+                } )
+          case 422277:
+            print('  Devour Essence', slam_count)
+            slam_count += 1
+            for player, status in emberscar_mark.items():
+              if status:
+                ignited_essence.update( {
+                  player: 0
+                } )

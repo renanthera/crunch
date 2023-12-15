@@ -29,7 +29,7 @@ class Request:
   def get_request( self ):
     def https_request( retry=0 ):
       if self.DEBUG:
-        print( 'requesting', self.query.string )
+        print( 'requesting', self.query.stringify() )
       try:
         req = requests.post(
           self.v2_endpoint,
@@ -37,7 +37,7 @@ class Request:
             'Authorization': self.token.auth
           },
           data={
-            'query': self.query.string
+            'query': self.query.stringify()
           }
         )
 
@@ -56,8 +56,8 @@ class Request:
         raise SystemExit
 
     def get_path( node ):
-      if node.get('fields') is None:
-        return node.get('name')
+      if node.get( 'fields' ) is None:
+        return node.get( 'name' )
       if any( [ field.get( 'fields' ) or field.get( 'args' ) for field in node.get( 'fields' ) ] ):
         child_fields = [ get_path( field ) for field in node.get( 'fields' ) ]
         child_fields = child_fields[ 0 ] if isinstance( child_fields[ 0 ], list ) else child_fields
@@ -74,8 +74,8 @@ class Request:
     # print('path', [get_path(self.query.tree)])
     # print(json.dumps(resp, indent=2))
 
-    if resp.get('errors'): # pyright: ignore
-      print(json.dumps(resp, indent=2))
+    if resp.get( 'errors' ): # pyright: ignore
+      print( json.dumps( resp, indent=2 ) )
       raise SystemExit
 
     path = get_path( self.query.tree )
@@ -86,7 +86,16 @@ class Request:
 
     # print(json.dumps(body, indent=2))
 
+    if isinstance( body, dict ):
+      if any( self.query.paginator.values() ) and body.get(
+          self.query.paginator.get( 'paginationField' ) ):
+        self.query.update( {
+          self.query.paginator.get( 'overrides' ):
+          body.get( self.query.paginator.get( 'paginationField' ) )
+        } )
+
+        body[ 'data' ] += self.get_request().get( 'data' )
+
     return body
 
-  # TODO: impl pagination
   # TODO: better object resolution
