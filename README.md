@@ -1,6 +1,6 @@
 Consumes the WCL API for analysis. Analyzers exist for Brewmaster effects.
 
-in `python/credentials` place the following data:
+in `credentials` place the following data:
 
 ```
 clientID = 'WCL v2 CLIENT ID'
