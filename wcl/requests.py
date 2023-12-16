@@ -1,10 +1,11 @@
-from os import path
 from . import caching, query, token
 
+from os import path
 import requests
 import json
 from requests.exceptions import HTTPError
 
+@caching.cache
 class Request:
   v2_endpoint = 'https://www.warcraftlogs.com/api/v2/client'
   cache = caching.Cache()
@@ -12,24 +13,16 @@ class Request:
 
   DEBUG = False
 
-  def __init__( self, query ):
+  def __init__( self, query, data=None ):
     self.query = query
-
-    if self.query.cacheable:
-      self.data = self.cache.get_artifact( self.query.string )
-      if self.data:
-        if self.DEBUG:
-          print( 'read', self.query.string, 'from cache' )
-        return
-
-    self.data = self.get_request()
-    if self.query.cacheable:
-      self.cache.put_artifact( self.query.string, self.data )
+    self.data = self.get_request() if data is None else data
 
   def get_request( self ):
     def https_request( retry=0 ):
+      query_string = self.query.stringify()
+
       if self.DEBUG:
-        print( 'requesting', self.query.stringify() )
+        print( 'requesting', query_string )
       try:
         req = requests.post(
           self.v2_endpoint,
@@ -37,7 +30,7 @@ class Request:
             'Authorization': self.token.auth
           },
           data={
-            'query': self.query.stringify()
+            'query': query_string
           }
         )
 

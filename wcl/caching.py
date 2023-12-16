@@ -6,6 +6,21 @@ import uuid
 # As implemented in requests, identifier is completed query that has been
 # stringified and is ready to be passed as a Request.
 
+def cache( Request ):
+  def decorator( query ):
+    ret = None
+
+    if query.cacheable:
+      cache = Cache()
+      ret = Request( query, cache.get_artifact( query.string ) )
+    if ret is None:
+      ret = Request( query )
+    if query.cacheable:
+      cache.put_artifact( query.string, ret.data ) # pyright: ignore
+    return ret
+
+  return decorator
+
 class Cache:
   cache_root = 'cache'
   cache_index = cache_root + '/index.json'
@@ -46,7 +61,7 @@ class Cache:
 
   def lookup_uuid( self, identifier ):
     for entry in self.cache: # type: ignore
-      if entry.get('identifier') == identifier:
+      if entry.get( 'identifier' ) == identifier:
         return entry[ 'uuid' ]
     return None
 
@@ -56,13 +71,13 @@ class Cache:
 def read_artifact( path ):
   if not os.path.isfile( path ):
     return None
-  with open( path, 'r' ) as openfile:
-    json_object = json.load( openfile )
+  with open( path, 'r' ) as handle:
+    json_object = json.load( handle )
   return json_object
 
 def write_artifact( artifact, path ):
   json_object = json.dumps( artifact, indent=2 )
   os.makedirs( os.path.dirname( path ), exist_ok=True )
-  with open( path, "w" ) as outfile:
-    outfile.write( json_object )
+  with open( path, "w" ) as handle:
+    handle.write( json_object )
   return 0

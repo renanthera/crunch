@@ -2,9 +2,4 @@ Warcraftlogs module in `wcl/` provides query objects to create queries, complete
 
 Analyzers module in `analyzers/` provides some examples for analyzers.
 
-To use this, you must first place the following in `credentials`:
-
-```
-clientID = 'WCL v2 CLIENT ID'
-clientSecret = 'WCL v2 CLIENT SECRET'
-```
+To use this, first copy `credentials.fmt` as `credentials` and fill in Warcraftlogs v2 API client ID and secret.

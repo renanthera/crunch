@@ -1,4 +1,5 @@
 import time
+import json
 import pickle
 
 from requests.exceptions import HTTPError
@@ -26,19 +27,23 @@ class Token:
 
   def read_token( self ):
     try:
-      with open( self.token_filename, 'rb' ) as handle:
-        data = handle.read()
-      self.token = pickle.loads( data )
+      with open( self.token_filename, 'r' ) as handle:
+        data = json.load( handle )
+      self.token = data
       self.load_token()
     except Exception as err:
       print( f'Failed to load token: {err}' )
       self.token = None
 
+  def write_token( self ):
+    json_object = json.dumps( self.token, indent=2 )
+    with open( self.token_filename, 'w' ) as handle:
+      handle.write( json_object )
+
   def read_credentials( self ):
     with open( self.credentials_filename, 'rb' ) as handle:
-      data = handle.read()
-    data = str( data ).split( '\'' )
-    return data[ 1 ], data[ 3 ]
+      data = json.load( handle )
+    return data.get('clientID'), data.get('clientSecret')
 
   def get_token( self ):
     try:
@@ -58,8 +63,3 @@ class Token:
     except Exception as err:
       print( f'Other error occurred: {err}' )
       raise SystemExit
-
-  def write_token( self ):
-    handle = open( self.token_filename, 'wb' )
-    pickle.dump( self.token, handle )
-    handle.close()

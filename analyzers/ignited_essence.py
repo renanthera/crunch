@@ -19,7 +19,7 @@ def ignited_essence( reportCodes ):
 
     # TODO: better method for detecting if a fight is a reset
     fights = [
-      fight for fight in fights.data # pyright: ignore
+      fight for fight in wcl.getFights( params )
       if fight.get( 'name' ) == 'Smolderon' and fight.get( 'endTime' ) -
       fight.get( 'startTime' ) > 1000
     ]
@@ -32,10 +32,7 @@ def ignited_essence( reportCodes ):
         'endTime': fights[ fight ].get( 'endTime' )
       } )
 
-      players = wcl.getPlayerDetails( params ).data.get( 'data' # pyright: ignore
-                                                        ).get( # pyright: ignore
-                                                          'playerDetails'
-                                                        )
+      players = wcl.getPlayerDetails( params )
       players = [ char for role in players.values() for char in role ]
 
       def get_player_name( id ):
@@ -79,7 +76,7 @@ def ignited_essence( reportCodes ):
                   targetID: 0
                 } )
           case 422277:
-            print('  Devour Essence', slam_count)
+            print( '  Devour Essence', slam_count )
             slam_count += 1
             for player, status in emberscar_mark.items():
               if status:
