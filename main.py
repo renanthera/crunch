@@ -388,6 +388,26 @@ import wcl
 
 import analyzers
 
-# analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
+analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
 analyzers.ignited_essence( [ 'qWJXamNtPbTfZ41y' ] )
 wcl.getPointsSpent()
+
+# t = wcl.GQL_EventDataType('All') + 'hello'
+# print(t, type(t))
+
+
+# t = wcl.Events(
+#   {
+#     'reportCode': '1234567',
+#     'startTime': 0,
+#     'endTime': 1e30,
+#     'args': {
+#       'dataType': 'Debuffs',
+#       'abilityID': 421858,
+#       'filterExpression':
+#       'ability.id in (421858, 421643) or (type = \'cast\' and ability.id = 422277)'
+#     }
+#   }
+# )
+
+# print(t.string)

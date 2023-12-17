@@ -15,6 +15,7 @@ class Request:
 
   def __init__( self, query, data=None ):
     self.query = query
+    print(query)
     self.data = self.get_request() if data is None else data
 
   def get_request( self ):
@@ -68,6 +69,7 @@ class Request:
     # print(json.dumps(resp, indent=2))
 
     if resp.get( 'errors' ): # pyright: ignore
+      print( f'Failed to complete {self.query.string}' )
       print( json.dumps( resp, indent=2 ) )
       raise SystemExit
 

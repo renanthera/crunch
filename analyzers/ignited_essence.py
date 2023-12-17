@@ -6,14 +6,11 @@ def ignited_essence( reportCodes ):
     print( 'report code:', reportCode )
     print( '===================================' )
     params = {
-      'reportCode': reportCode,
+      'code': reportCode,
       'startTime': 0,
       'endTime': 1e30,
-      'args': {
-        'filterExpression':
-        'ability.id in (421858, 421643) or (type = \'cast\' and ability.id = 422277)'
-      }
-    }
+      'filterExpression': 'ability.id in (421858, 421643) or (type = \'cast\' and ability.id = 422277)'
+    } # yapf: disable
 
     fights = wcl.getFights( params )
 

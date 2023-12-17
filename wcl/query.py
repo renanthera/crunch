@@ -1,24 +1,47 @@
 class Query:
-  # TODO: REWORK REQUEST
+  params = dict()
+
   parent = None
   cacheable = True
   paginator = {
     'paginationField': None,
     'overrides': None
   }
+  args = dict()
+  args_override = set()
+  fields = []
+  children = None
 
   def components( self ):
-    pass
+    name = self.__class__.__name__
+    pagination_field = self.paginator.get( 'paginationField' )
+    return {
+      'name': name[ 0 ].lower() + name[ 1: ],
+      'args': {
+        argk: str( argt( self.params.get( argk ) ) ) # pyright: ignore
+        for argk, argt in self.args.items()
+        if self.params.get( argk ) is not None # pyright: ignore
+      } | {
+        argo: self.params.get( argo )
+        for argo in self.args_override
+        if argo is not None
+      },
+      'fields': [
+        field if isinstance( field, dict ) else { 'name': field }
+        for field in self.fields + [ self.children, pagination_field ]
+        if field is not None
+      ]
+    } # yapf: disable
 
   def __init__( self, params, cacheable=None ):
     self.params = params.copy()
+    self.children = params.get( 'children' )
+
     self.tree = self.create_tree()
     self.string = self.stringify()
     self.cacheable = cacheable if cacheable is not None else self.cacheable
 
   def update( self, params ):
-    # assert len(params) == len(self.params), 'Updating params with the incorrect number of elements'
-    # assert set( params ) == set( self.params ), 'Updated keys do not match'
     assert all([ type(self.params.get(key)) is type(params.get(key)) or params.get(key) is None for key in self.params]), 'Types of values do not match'
     assert params != self.params, 'Params are unchanged'
 
@@ -41,15 +64,6 @@ class Query:
       args = []
       fields = []
       if node.get( 'args' ):
-        for key in node.get( 'args' ).keys():
-          # TODO: better formatting for enum, boolean and string types
-          if isinstance(
-              node.get( 'args' ).get( key ),
-              str ) and node.get( 'args' ).get( key )[ 0 ] != '"' and node.get( 'args' ).get(
-                key ) != 'true' and node.get( 'args' ).get( key ) != 'false' and node.get('args').get(key) != 'Debuffs':
-            node.get( 'args' )[ key ] = '"' + node.get( 'args' )[ key ] + '"'
-          if isinstance( node.get( 'args' ).get( key ), bool ):
-            node.get( 'args' )[ key ] = 'true' if node.get( 'args' ).get( 'key' ) else 'false'
         args = [ str( key ) + ': ' + str( value ) for key, value in node.get( 'args' ).items() ]
       if node.get( 'fields' ):
         fields = [ recurse_nodes( child ) for child in node.get( 'fields' ) ]
@@ -64,100 +78,89 @@ class Query:
 
 # TODO: Generate this from GraphQL schema
 
-# dict.get method wraps lists in tuples for some reason
-def process_fields( fields ):
-  if isinstance( fields, tuple ):
-    return [ *fields ]
-  return [ fields ]
+class GraphQLType:
+  def __init__( self, value ):
+    self.value = value
+
+class GQL_Boolean( GraphQLType ):
+  def __str__( self ):
+    return str( self.value )
+
+class GQL_String( GraphQLType ):
+  def __str__( self ):
+    return '"' + str( self.value ) + '"'
+
+class GQL_Int( GraphQLType ):
+  def __str__( self ):
+    return str( self.value )
+
+class GQL_Float( GraphQLType ):
+  def __str__( self ):
+    return str( self.value )
+
+class GQL_Enum( GraphQLType ):
+  allowed = []
+
+  def __str__( self ):
+    assert self.value in self.allowed, f'{self.value} not in {self.__class__.__name__}'
+    return self.value
+
+class GQL_EventDataType( GQL_Enum ):
+  allowed = [
+    'All',
+    'Buffs',
+    'Casts',
+    'CombatantInfo',
+    'DamageDone',
+    'DamageTaken',
+    'Deaths',
+    'Debuffs',
+    'Dispels',
+    'Healing',
+    'Interrupts',
+    'Resources',
+    'Summons',
+    'Threat',
+  ]
 
 class ReportData( Query ):
-  def components( self ):
-    return {
-      'name': 'reportData',
-      'fields': process_fields( self.params.get( 'children' ) )
-    }
+  pass
 
 class Report( Query ):
   parent = ReportData
-
-  def components( self ):
-    return {
-      'name': 'report',
-      'args': {
-        'code': self.params.get( 'reportCode' )
-      },
-      'fields': process_fields( self.params.get( 'children' ) )
-    }
+  args = {
+    'code': GQL_String
+  }
 
 class PlayerDetails( Query ):
   parent = Report
-
-  def components( self ):
-    return {
-      'name': 'playerDetails',
-      'args': {
-        'translate': False,
-        'startTime': self.params.get( 'startTime' ),
-        'endTime': self.params.get( 'endTime' )
-      }
-    }
+  args = {
+    'difficulty': GQL_Int,
+    'encounterID': GQL_Int,
+    'endTime': GQL_Float,
+    # 'fightIDs': GQL_[Int],
+    # 'killType': GQL_KillType,
+    'startTime': GQL_Float,
+    'translate': GQL_Boolean
+  }
 
 class MasterData( Query ):
   parent = Report
-
-  def components( self ):
-    return {
-      'name': 'masterData'
-    }
+  args = {
+    'translate': GQL_Boolean
+  }
 
 class RateLimitData( Query ):
-  def components( self ):
-    return {
-      'name': 'rateLimitData',
-      'fields': process_fields( self.params.get( 'children' ) )
-    }
+  pass
 
 class PointsSpentThisHour( Query ):
   parent = RateLimitData
   cacheable = False
 
-  def components( self ):
-    return {
-      'name': 'pointsSpentThisHour'
-    }
-
 class Fights( Query ):
   parent = Report
   cacheable = False
-
-  def components( self ):
-    return {
-      'name':
-      'fights',
-      'fields': [
-        {
-          'name': 'id'
-        },
-        {
-          'name': 'encounterID',
-        },
-        {
-          'name': 'name'
-        },
-        {
-          'name': 'difficulty'
-        },
-        {
-          'name': 'kill'
-        },
-        {
-          'name': 'startTime'
-        },
-        {
-          'name': 'endTime'
-        },
-      ]
-    },
+  fields = [ 'id', 'encounterID', 'name', 'difficulty', 'kill', 'startTime', 'endTime' ]
 
 class Events( Query ):
   parent = Report
@@ -166,18 +169,38 @@ class Events( Query ):
     'overrides': 'startTime'
   }
 
-  def components( self ):
-    return {
-      'name': 'events',
-      'args': {
-        **self.params.get( 'args' ),
-        'startTime': self.params.get( 'startTime' ),
-        'endTime': self.params.get( 'endTime' )
-      },
-      'fields': [ {
-        'name': 'data'
-      },
-                  {
-                    'name': 'nextPageTimestamp'
-                  } ]
-    }
+  args = {
+    'abilityID': GQL_Float,
+    'dataType': GQL_EventDataType,
+    'death': GQL_Int,
+    'difficulty': GQL_Int,
+    'encounterID': GQL_Int,
+    'endTime': GQL_Float,
+    # 'fightIDs': [ GQL_Int ],
+    'filterExpression': GQL_String,
+    # 'hostilityType': GQL_HostilityType,
+    'includeResources': GQL_Boolean,
+    # 'killType': GQL_KillType,
+    'limit': GQL_Int,
+    'sourceAurasAbsent': GQL_String,
+    'sourceAurasPresent': GQL_String,
+    'sourceClass': GQL_String,
+    'sourceID': GQL_Int,
+    'sourceInstanceID': GQL_Int,
+    'startTime': GQL_Float,
+    'targetAurasAbsent': GQL_String,
+    'targetAurasPresent': GQL_String,
+    'targetClass': GQL_String,
+    'targetID': GQL_Int,
+    'targetInstanceID': GQL_Int,
+    'translate': GQL_Boolean,
+    'useAbilityIDs': GQL_Boolean,
+    'useActorIDs': GQL_Boolean,
+    'viewOptions': GQL_Int,
+    'wipeCutoff': GQL_Int
+  }
+
+  args_override = { 'startTime',
+                    'endTime' }
+
+  fields = [ 'data' ]
