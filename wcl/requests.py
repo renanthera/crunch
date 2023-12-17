@@ -15,7 +15,6 @@ class Request:
 
   def __init__( self, query, data=None ):
     self.query = query
-    print(query)
     self.data = self.get_request() if data is None else data
 
   def get_request( self ):
