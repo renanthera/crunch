@@ -8,7 +8,6 @@ class Query:
     'overrides': None
   }
   args = dict()
-  args_override = set()
   fields = []
   children = None
 
@@ -18,13 +17,9 @@ class Query:
     return {
       'name': name[ 0 ].lower() + name[ 1: ],
       'args': {
-        argk: str( argt( self.params.get( argk ) ) ) # pyright: ignore
+        argk: GQL_type_handler( argt, self.params.get( argk ) )
         for argk, argt in self.args.items()
-        if self.params.get( argk ) is not None # pyright: ignore
-      } | {
-        argo: self.params.get( argo )
-        for argo in self.args_override
-        if argo is not None
+        if self.params.get( argk ) is not None
       },
       'fields': [
         field if isinstance( field, dict ) else { 'name': field }
@@ -76,7 +71,10 @@ class Query:
 
     return '{' + recurse_nodes( self.tree ) + '}'
 
-# TODO: Generate this from GraphQL schema
+def GQL_type_handler( argt, value ):
+  if isinstance( argt, list ):
+    return GQL_List( value, argt[ 0 ] )
+  return argt( value )
 
 class GraphQLType:
   def __init__( self, value ):
@@ -102,8 +100,20 @@ class GQL_Enum( GraphQLType ):
   allowed = []
 
   def __str__( self ):
-    assert self.value in self.allowed, f'{self.value} not in {self.__class__.__name__}'
+    assert self.value in self.allowed, f'{self.value} not in Enum {self.__class__.__name__}'
     return self.value
+
+class GQL_List( GraphQLType ):
+  def __init__( self, value, secondaryType ):
+    super().__init__( value )
+    self.secondaryType = secondaryType
+
+  def __str__( self ):
+    assert self.secondaryType is not None, 'Secondary type is not defined for list object'
+    assert isinstance( self.value, list ), 'Values are not a list'
+    return '[' + ', '.join( [ str( self.secondaryType( val ) ) for val in self.value ] ) + ']'
+
+# TODO: Generate this from GraphQL schema
 
 class GQL_EventDataType( GQL_Enum ):
   allowed = [
@@ -138,7 +148,7 @@ class PlayerDetails( Query ):
     'difficulty': GQL_Int,
     'encounterID': GQL_Int,
     'endTime': GQL_Float,
-    # 'fightIDs': GQL_[Int],
+    'fightIDs': [ GQL_Int ],
     # 'killType': GQL_KillType,
     'startTime': GQL_Float,
     'translate': GQL_Boolean
@@ -176,7 +186,7 @@ class Events( Query ):
     'difficulty': GQL_Int,
     'encounterID': GQL_Int,
     'endTime': GQL_Float,
-    # 'fightIDs': [ GQL_Int ],
+    'fightIDs': [ GQL_Int ],
     'filterExpression': GQL_String,
     # 'hostilityType': GQL_HostilityType,
     'includeResources': GQL_Boolean,
@@ -199,8 +209,5 @@ class Events( Query ):
     'viewOptions': GQL_Int,
     'wipeCutoff': GQL_Int
   }
-
-  args_override = { 'startTime',
-                    'endTime' }
 
   fields = [ 'data' ]
