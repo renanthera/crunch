@@ -12,8 +12,6 @@ def ignited_essence( reportCodes ):
       'filterExpression': 'ability.id in (421858, 421643) or (type = \'cast\' and ability.id = 422277)'
     } # yapf: disable
 
-    fights = wcl.getFights( params )
-
     # TODO: better method for detecting if a fight is a reset
     fights = [
       fight for fight in wcl.getFights( params )

@@ -270,114 +270,6 @@ import wcl
 
 #   print( acc / ct )
 
-# def tier_proc_analysis( info ):
-#   reportCode = info.get( 'reportCode' )
-#   startTime = info.get( 'startTime' )
-#   endTime = info.get( 'endTime' )
-#   id = info.get( 'id' )
-#   name = info.get( 'name' )
-
-#   filter_exprn = "\"source.name = '" + name + "' and ((type in ('applydebuff', 'removedebuff') and ability.id = 123725) or (type = 'damage'))\""
-#   events = wcl.getEvents(
-#     reportCode,
-#     None,
-#     {
-#       'startTime': startTime,
-#       'endTime': endTime,
-#       'useAbilityIDs': 'true',
-#       'filterExpression': filter_exprn,
-#       'sourceID': id
-#     }
-#   )
-#   data = list( chain.from_iterable( events.data ) )
-
-#   debuff_active = defaultdict( int )
-#   total = defaultdict( int )
-#   active_targets = {}
-#   for event in data:
-#     ident = str( event.get( 'targetID', 0 ) ) + '-' + str( event.get( 'targetInstance', 0 ) )
-#     spellid = event.get( 'abilityGameID', -1 )
-#     match event.get( 'type' ):
-#       case 'applydebuff':
-#         if spellid == 123725:
-#           active_targets.update( {
-#             ident: True
-#           } )
-#       case 'removedebuff':
-#         if spellid == 123725:
-#           active_targets.update( {
-#             ident: False
-#           } )
-#       case 'refreshdebuff':
-#         continue
-#       case 'damage':
-#         # print(event)
-#         total[ spellid ] += 1
-#         if active_targets.get( ident ):
-#           debuff_active[ spellid ] += 1
-#         continue
-#       case _:
-#         # print('FELL THROUGH')
-#         # print(event)
-#         continue
-#   # for k,v in active_targets.items():
-#   #     print(k, v)
-#   # for k,v in debuff_active.items():
-#   #     print(k, v, total[k])
-#   def sum_hits( whitelist, match_total ):
-#     sum = 0
-#     for spellid in total.keys():
-#       if spellid in whitelist:
-#         if match_total:
-#           sum += total.get( spellid, 0 )
-#         else:
-#           sum += debuff_active.get( spellid, 0 )
-#     return sum
-
-#   whitelist_trigger_4p = [
-#       1,      # melee hit
-#       185099, # rising sun kick hit
-#       115129, # expel harm hit
-#       132467, # chi wave hit
-#       # chi burst hit
-#       # 196608, # eye of the tiger dot
-#       391400, # resonant fists hit
-#       121253, # keg smash hit
-#       148187, # rushing jade wind hit
-#               # special delivery hit
-#       115181, # breath of fire hit
-#       # 123725, # breath of fire dot
-#       386959, # charred passions hit
-#       387621, # dragonfire brew hit
-#       # 325217, # bonedust brew hit
-#       325153, # exploding keg hit
-#       388867, # exploding keg proc
-#       # press the advantage
-#       # 393786, # chi surge dot
-#       205523, # blackout kick hit
-#       # 117952, # crackling jade lightning dot
-#       107270, # spinning crane kick hit
-#       100780, # tiger palm hit
-#       322109, # touch of death hit
-#       389541, # claw of the white tiger hit
-#       1,      # niuzao melee hit
-#       227291, # niuzao stomp hit
-#   ]
-#   whitelist_trigger_2p = [
-#       115181, # breath of fire hit
-#       123725, # breath of fire dot
-#   ]
-#   triggers_total = sum_hits( [ 425299 ], True )
-#   triggers_2p = sum_hits( whitelist_trigger_2p, True )
-#   triggers_4p = triggers_total - triggers_2p
-#   candidates_4p = sum_hits( whitelist_trigger_4p, False )
-#   if candidates_4p == 0:
-#     print( 'NO 4p TRIGGER CANDIDATES' )
-#     return
-#   ratio = triggers_4p / candidates_4p
-#   # print(triggers_total, triggers_2p, triggers_4p, candidates_4p)
-#   print( ratio )
-
 # # runReports(tier_proc_analysis)
 # # runReports(tier_guard_analysis)
 
@@ -388,6 +280,9 @@ import wcl
 
 import analyzers
 
-analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
-analyzers.ignited_essence( [ 'qWJXamNtPbTfZ41y' ] )
+# analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
+# analyzers.ignited_essence( [ 'qWJXamNtPbTfZ41y' ] )
+
+analyzers.t31_brew.proc( [ 'qWJXamNtPbTfZ41y' ] )
+# analyzers.t31_brew.proc( [ '48WF9r1QMZLaCdxm', '1kZbDcdynvL9YQqm', 'zNGTmYPXwDtVKAkd' ] )
 wcl.getPointsSpent()

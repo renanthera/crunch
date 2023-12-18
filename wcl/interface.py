@@ -49,7 +49,9 @@ def printPlayerDetails( params ):
 
 def getPointsSpent():
   params = {}
+  req = Request( query.PointsSpentThisHour( params ) ).data.get( 'pointsSpentThisHour' )
   return print(
-    Request( query.PointsSpentThisHour( params ) ).data.get( 'pointsSpentThisHour' ),
-    'points spent'
+    req,
+    'point'  if req == 1 else 'points',
+    'spent this hour'
   ) # pyright: ignore
