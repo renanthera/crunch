@@ -283,6 +283,21 @@ import analyzers
 # analyzers.ignited_essence( [ 'YftHvBKJzh8nxa9A', 'xrfcz1d34vjJ2LqM' ] )
 # analyzers.ignited_essence( [ 'qWJXamNtPbTfZ41y' ] )
 
-analyzers.t31_brew.proc( [ 'qWJXamNtPbTfZ41y' ] )
+# analyzers.t31_brew.proc( [ 'qWJXamNtPbTfZ41y', '7Qct4AXZg8vwrqzL' ] )
+
 # analyzers.t31_brew.proc( [ '48WF9r1QMZLaCdxm', '1kZbDcdynvL9YQqm', 'zNGTmYPXwDtVKAkd' ] )
+
+analyzers.t31_brew.proc( [
+  'bkrPDQ1ZtTGRphWn',
+  'YftHvBKJzh8nxa9A',
+  'qWJXamNtPbTfZ41y',
+  '7Qct4AXZg8vwrqzL',
+  'ny4h6wmpKVbHZq7Q',
+  'NLMhDBTJw9zq8j2A',
+  'gjvwPqda6KpJ7z3k',
+  'mhbxMrLVFAyDt3Pz',
+  'V2Q4mHvJ8Pg1KTX6',
+  'qFfXM34xTdNaB87V',
+  'XDk2aVCLnyBFKHPr',
+] )
 wcl.getPointsSpent()
