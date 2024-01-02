@@ -14,7 +14,7 @@ def getMasterData( params ):
   return Request( query.MasterData( params ) ).data
 
 def getEvents( params ):
-  return Request( query.Events( params ) ).data.get( 'data' ) # pyright: ignore
+  return Request( query.Events( params ) ).data.get( 'data' ) or {} # pyright: ignore
 
 def printFights( params ):
   req = getFights( params )
@@ -50,8 +50,16 @@ def printPlayerDetails( params ):
 def getPointsSpent():
   params = {}
   req = Request( query.PointsSpentThisHour( params ) ).data.get( 'pointsSpentThisHour' )
-  return print(
-    req,
-    'point'  if req == 1 else 'points',
-    'spent this hour'
-  ) # pyright: ignore
+  return print( req, 'point' if req == 1 else 'points', 'spent this hour' ) # pyright: ignore
+
+def getPlayerFromID( id, params ):
+  for player in getPlayers( params ):
+    if player.get( 'id' ) == id:
+      return player.get( 'name' )
+
+def getPlayers( params ):
+  return [
+    char
+    for role in getPlayerDetails(params).values()
+    for char in role
+  ]
