@@ -1,20 +1,12 @@
 import wcl
 from copy import deepcopy
 
-__all__ = ["report_code_to_events"]
+__all__ = [ "report_code_to_events" ]
 # not happy with how this function feels to use, but it greatly improves
 # writing nearly all analyzers as the pattern is quite repetitive
-# TODO: Support multiple callback fields and sets of callbacks
 # TODO: Improve interface with method
 
-def report_code_to_events(
-  report_codes,
-  params_base,
-  fight_filter,
-  event_data_base,
-  callbacks,
-  callback_field
-):
+def report_code_to_events( report_codes, params_base, fight_filter, event_data_base, callbacks ):
   # package up all event_data objects per fight analyzed to be returned by this method
   # add params to event_data_base so params can be used in callbacks without passing it explicitly
   event_datum = {
@@ -25,7 +17,7 @@ def report_code_to_events(
     'params': params_base
   } )
 
-  for report_code in report_codes:
+  for report_id, report_code in enumerate( report_codes ):
     # report points used
     # update params to include:
     # - report code
@@ -38,20 +30,32 @@ def report_code_to_events(
       # - corrected start and end timestamps for fight
       # gather events from fight
       # make a copy of event_data_base to be used for this fight
+      # attach events for fight to event_data
       # add reference to event_data to event_datum
       params, events = fight_to_events( params, fight_id, fight )
       event_data = deepcopy( event_data_base )
+      event_data.update( {
+        'events': events
+      } )
       event_datum[ report_code ].update( {
         fight_id: event_data
       } )
 
-      for event in events:
-        # find the key used in callback dict
-        # capture callback from callback dict
-        # execute callback using event and event_data
-        callback_field_value = event.get( callback_field )
-        callback = callbacks.get( callback_field_value, lambda *x: x )
-        callback( event, event_data )
+      for event_id, event in enumerate( events ):
+        # update event_id field so we have current event array position
+        # execute each callback in callback list that matches all filter params
+        event_data.update( {
+          'event_id': event_id
+        } )
+        [
+          callback.get( 'callback',lambda *_: None )( event, event_data )
+          for callback in callbacks
+          if all( [
+              event.get( key ) == value
+              for key, value in callback.items()
+              if key != 'callback'
+          ] )
+        ] # yapf: disable
   return event_datum
 
 def fight_duration( fight ):

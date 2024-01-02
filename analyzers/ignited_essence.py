@@ -43,11 +43,6 @@ def devour_essence_cast( _, event_data ):
       } )
 
 def ignited_essence( reportCodes ):
-  callbacks = {
-    421858: ignited_essence_debuff,
-    421643: emberscars_mark_debuff,
-    422277: devour_essence_cast
-  }
   report_code_to_events(
     reportCodes,
     {
@@ -60,6 +55,18 @@ def ignited_essence( reportCodes ):
       'ignited_essence': {},
       'slam_count': 1
     },
-    callbacks,
-    'abilityGameID'
+    [
+      {
+        'abilityGameID': 421858,
+        'callback': ignited_essence_debuff
+      },
+      {
+        'abilityGameID': 421643,
+        'callback': emberscars_mark_debuff
+      },
+      {
+        'abilityGameID': 422277,
+        'callback': devour_essence_cast
+      },
+    ]
   )
