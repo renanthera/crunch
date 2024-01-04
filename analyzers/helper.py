@@ -1,7 +1,7 @@
 import wcl
 from copy import deepcopy
 
-__all__ = [ "report_code_to_events" ]
+__all__ = [ "report_code_to_events", "flatten_event_data" ]
 # not happy with how this function feels to use, but it greatly improves
 # writing nearly all analyzers as the pattern is quite repetitive
 # TODO: Improve interface with method
@@ -13,11 +13,14 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
     report_code: {}
     for report_code in report_codes
   }
-  event_data_base.update( {
+  event_data_local = deepcopy(event_data_base)
+  event_data_local.update( {
     'params': params_base
   } )
 
   for report_id, report_code in enumerate( report_codes ):
+    # if report_id != 1:
+    #   continue
     # report points used
     # update params to include:
     # - report code
@@ -25,7 +28,10 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
     # gather fights in report code
     params, fights = report_to_fights( report_code, params_base, fight_filter )
 
+
     for fight_id, fight in enumerate( fights ):
+      # if fight_id != 4:
+      #   continue
       # update params to include:
       # - corrected start and end timestamps for fight
       # gather events from fight
@@ -33,13 +39,14 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
       # attach events for fight to event_data
       # add reference to event_data to event_datum
       params, events = fight_to_events( params, fight_id, fight )
-      event_data = deepcopy( event_data_base )
+      event_data = deepcopy( event_data_local )
       event_data.update( {
         'events': events
       } )
       event_datum[ report_code ].update( {
         fight_id: event_data
       } )
+
 
       for event_id, event in enumerate( events ):
         # update event_id field so we have current event array position
@@ -85,3 +92,19 @@ def fight_to_events( params, fight_id, fight ):
     'endTime': fight.get( 'endTime' )
   } )
   return params, wcl.getEvents( params )
+
+
+# given the typical return shape of report_code_to_events event_data, flatten
+# it to look like event_data_base
+def flatten_event_data( event_data, event_data_base ):
+  return {
+    key: [
+      value
+      for report_code in event_data.values()
+      for fight_data in report_code.values()
+      for source_key, elements in fight_data.items()
+      if source_key == key and source_key in event_data_base.keys()
+      for value in elements
+    ]
+    for key in event_data_base.keys()
+  }

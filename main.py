@@ -104,8 +104,7 @@ import analyzers
 
 analyzers.press_the_advantage.damage( [
   'xrfcz1d34vjJ2LqM',
-  'ygV4kq9RLvGQ2wm8',
-  'vr1RPbDWJ9YakM8j',
+  'Ncd1HmvAMBJDzWPh',
 ] )
 
 # analyzers.t31_brew.proc( [
