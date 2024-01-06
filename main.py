@@ -102,10 +102,10 @@ import analyzers
 #   'vr1RPbDWJ9YakM8j',
 # ] )
 
-analyzers.press_the_advantage.damage( [
-  'xrfcz1d34vjJ2LqM',
-  'Ncd1HmvAMBJDzWPh',
-] )
+# analyzers.press_the_advantage.damage( [
+#   'xrfcz1d34vjJ2LqM',
+#   'Ncd1HmvAMBJDzWPh',
+# ] )
 
 # analyzers.t31_brew.proc( [
 #   'bkrPDQ1ZtTGRphWn',
@@ -120,3 +120,5 @@ analyzers.press_the_advantage.damage( [
 #   'qFfXM34xTdNaB87V',
 #   'XDk2aVCLnyBFKHPr',
 # ] )
+
+analyzers.flaming_germination.flaming_germination( [ 'dJ8yqMXVctHR3CDa' ] )

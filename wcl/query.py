@@ -82,7 +82,7 @@ class GraphQLType:
 
 class GQL_Boolean( GraphQLType ):
   def __str__( self ):
-    return str( self.value )
+    return str( self.value and 'true' or 'false' )
 
 class GQL_String( GraphQLType ):
   def __str__( self ):

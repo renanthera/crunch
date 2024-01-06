@@ -30,7 +30,7 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
 
 
     for fight_id, fight in enumerate( fights ):
-      # if fight_id != 4:
+      # if fight_id != 5:
       #   continue
       # update params to include:
       # - corrected start and end timestamps for fight
@@ -50,7 +50,7 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
 
       for event_id, event in enumerate( events ):
         # update event_id field so we have current event array position
-        # execute each callback in callback list that matches all filter params
+        # execute each callback in callback list that matches all filter params or is any 'any' callback
         event_data.update( {
           'event_id': event_id
         } )
@@ -61,8 +61,11 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
               event.get( key ) == value
               for key, value in callback.items()
               if key != 'callback'
-          ] )
+          ] ) or callback.get( 'any' ) == True
         ] # yapf: disable
+    #   if fight_id == 5:
+    #     break
+    # break
   return event_datum
 
 def fight_duration( fight ):
@@ -73,7 +76,7 @@ def report_to_fights( report_code, param_base, fight_filter ):
   print( 'report code:', report_code )
   wcl.getPointsSpent()
   print( '===================================' )
-  min_fight_duration = 1000
+  min_fight_duration = 10000
   param_base.update( {
     'code': report_code,
     'startTime': 0,
@@ -103,6 +106,7 @@ def flatten_event_data( event_data, event_data_base ):
       for report_code in event_data.values()
       for fight_data in report_code.values()
       for source_key, elements in fight_data.items()
+      if isinstance( elements, list )
       if source_key == key and source_key in event_data_base.keys()
       for value in elements
     ]
