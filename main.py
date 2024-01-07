@@ -121,4 +121,13 @@ import analyzers
 #   'XDk2aVCLnyBFKHPr',
 # ] )
 
-analyzers.flaming_germination.flaming_germination( [ 'dJ8yqMXVctHR3CDa' ] )
+analyzers.flaming_germination.flaming_germination(
+  [
+    'dJ8yqMXVctHR3CDa'
+  ],
+  [['Lagrimas', 'Katebrew', 'Dandaniel', 'Chizgoblin'],
+  ['Draxxii', 'Diosita', 'Goines', 'Ralfie'],
+  ['Meowge', 'Softmograne', 'Zinglefus', 'Jeefy'],
+  ['Impdh', 'Skovrogue', 'Reddevviil', 'Yusoon'],
+  ['Stragnim', 'Kreemlock', 'Zenvi', 'Harreks']]
+)

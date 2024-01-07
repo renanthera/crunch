@@ -1,13 +1,12 @@
 class Query:
-  params = dict()
-
+  params = {}
   parent = None
   cacheable = True
   paginator = {
     'paginationField': None,
     'overrides': None
   }
-  args = dict()
+  args = {}
   fields = []
   children = None
 
@@ -159,6 +158,15 @@ class MasterData( Query ):
   args = {
     'translate': GQL_Boolean
   }
+
+class Actors( Query ):
+  parent = MasterData
+  args = {
+    'type': GQL_String,
+    'subType': GQL_String
+  }
+
+  fields = [ 'gameID', 'icon', 'id', 'name', 'petOwner', 'server', 'subType', 'type' ]
 
 class RateLimitData( Query ):
   pass

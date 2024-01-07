@@ -50,12 +50,15 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
 
       for event_id, event in enumerate( events ):
         # update event_id field so we have current event array position
-        # execute each callback in callback list that matches all filter params or is any 'any' callback
+        # iterate over callbacks.
+        # if all filter parameters match, execute callback(s)
+        # if 'any': True filter exists, execute callback(s)
+        # if no callbacks were run, execute 'otherwise': True callback(s)
         event_data.update( {
           'event_id': event_id
         } )
-        [
-          callback.get( 'callback',lambda *_: None )( event, event_data )
+        callbacks_executed = [
+          callback.get( 'callback', lambda *_: None )( event, event_data )
           for callback in callbacks
           if all( [
               event.get( key ) == value
@@ -63,6 +66,12 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
               if key != 'callback'
           ] ) or callback.get( 'any' ) == True
         ] # yapf: disable
+        if len( callbacks_executed ) < 1:
+          [
+            callback.get( 'callback', lambda *_: None )( event, event_data )
+            for callback in callbacks
+            if callback.get( 'otherwise' ) == True
+          ]
     #   if fight_id == 5:
     #     break
     # break

@@ -11,7 +11,7 @@ def getPlayerDetails( params ):
                  ).data.get( 'data' ).get( 'playerDetails' ) # pyright: ignore
 
 def getMasterData( params ):
-  return Request( query.MasterData( params ) ).data
+  return Request( query.Actors( params ) ).data
 
 def getEvents( params ):
   return Request( query.Events( params ) ).data.get( 'data' ) or {} # pyright: ignore

@@ -1,130 +1,135 @@
 from .helper import *
 from wcl import getPlayerFromID, getPlayers
+import wcl
 
 import matplotlib.pyplot as plot
 import json
+from copy import deepcopy
 
 # NOTES:
 # Not all seeds spawned from Flaming Germination spawn at the same time.
 
-TEXT_REPORT = False
-GRAPHICAL_REPORT = False
-
-def capture_types( event, event_data ):
-  t = event.get( 'type' )
-  event_keys = { key
-                 for key in event.keys() }
-  if t in event_data[ 'types' ].keys():
-    event_data[ 'types' ][ t ].update( event_keys )
-  else:
-    event_data[ 'types' ].update( {
-      t: event_keys
-    } )
+TEXT_REPORT = True
+GRAPHICAL_REPORT = True
+GRAPHICAL_REPORT_2 = True
 
 def update_pos( event, event_data ):
-  if event.get( 'targetID' ) and event.get( 'x' ) and event.get( 'y' ):
-    event_data[ 'positions' ].update( {
-      event.get( 'targetID' ): {
-        'x': event.get( 'x' ),
-        'y': event.get( 'y' )
-      }
-    } )
+  target_id = event.get( 'targetID' )
+  x = event.get( 'x' )
+  y = event.get( 'y' )
+  if target_id and x and y and target_id in event_data[ 'entities' ].keys():
+    event_data[ 'entities' ][ target_id ][ 'position' ].update( {
+      'x': x,
+      'y': y,
+      'last_update': event.get( 'timestamp' )
+    } ) # yapf: disable
 
 def relative_pos( pos1, pos2 ):
   return {
-    'x': pos1.get( 'x' ) - pos2.get( 'x' ),
-    'y': pos1.get( 'y' ) - pos2.get( 'y' )
+    'x': pos1[ 'x' ] - pos2[ 'x' ],
+    'y': pos1[ 'y' ] - pos2[ 'y' ]
   }
 
 def soak_seed( event, event_data ):
   target_id = event.get( 'targetID' )
-  target_name = getPlayerFromID( target_id, event_data[ 'params' ] )
-  player_pos = event_data[ 'positions' ].get( target_id )
-  boss_pos = event_data[ 'positions' ].get( 2 )
-  relative = relative_pos( player_pos, boss_pos )
   timestamp = event.get( 'timestamp' )
-  delta = timestamp - event_data[ 'last_cast' ]
-  last_soak = event_data[ 'last_soak' ].get( target_id, 0 )
-  if last_soak >= event_data[ 'last_cast' ]:
-    event_data[ 'double_soakers' ][ target_id ] += 1
-  else:
-    event_data[ 'soak_locations' ].append( {
-      'x': relative['x'],
-      'y': relative['y'],
-      'latency': delta
-    } )
-    event_data[ 'soak_latency' ][ target_id ].append( delta )
-  event_data[ 'last_soak' ].update( {
-    target_id: timestamp
+  last_boss_cast = event_data[ 'last_boss_cast' ]
+  target_data = event_data[ 'entities' ][ target_id ]
+  target_position = target_data[ 'position' ]
+  boss_position = event_data[ 'boss_info' ][ 'position' ]
+  previous_soak = target_data[ 'soaks' ][ -1: ]
+  previous_soak_timestamp = len( previous_soak ) > 0 and previous_soak[ 0 ][ 'timestamp' ] or -1e10
+  soak_info = {
+    'target_id': target_id,
+    'timestamp': timestamp,
+    'last_boss_cast': last_boss_cast,
+    'target_position': deepcopy( target_position ),
+    'boss_position': deepcopy( boss_position ),
+    'double_soak': previous_soak_timestamp >= last_boss_cast and True or False
+  }
+  event_data[ 'entities' ][ target_id ].update( {
+    'exists': True
   } )
+  event_data[ 'entities' ][ target_id ][ 'soaks' ].append( soak_info )
+
   if TEXT_REPORT:
+    target_name = target_data[ 'name' ]
+    relative = relative_pos( target_position, boss_position )
+    delta = timestamp - last_boss_cast
     print( f'\t{target_name} soaked at {relative} after {delta} milliseconds' )
-    if last_soak >= event_data[ 'last_cast' ]:
+    if soak_info[ 'double_soak' ]:
       print( f'\t!!!!{target_name} double soaked!!!!' )
 
 def boss_cast( event, event_data ):
-  target_id = event.get( 'targetID' )
-  target_name = 'Tindral Sageswift'
-  position = event_data[ 'positions' ].get( target_id )
-  event_data[ 'last_cast' ] = event.get( 'timestamp' )
-  event_data[ 'candidate_to_soak' ].update( {
-    player: count + 1
-    for player,
-    count in event_data[ 'candidate_to_soak' ].items()
-    if event_data[ 'alive_players' ].get( player )
-  } )
+  event_data[ 'last_boss_cast' ] = event.get( 'timestamp' )
+  event_data[ 'boss_info' ][ 'exists' ] = True
+  for player_info in event_data[ 'entities' ].values():
+    if player_info[ 'alive' ]:
+      player_info.update( {
+        'soak_candidate': player_info[ 'soak_candidate' ] + 1
+      } )
+
   if TEXT_REPORT:
-    print( f'{target_name} casts at {position}' )
+    caster_id = event.get( 'targetID' )
+    caster_name = event_data[ 'boss_info' ][ 'name' ]
+    position = event_data[ 'entities' ][ caster_id ][ 'position' ]
+    print( f'{caster_name} casts at {position}' )
 
 def death( event, event_data ):
-  event_data[ 'alive_players' ].update( {
-    event.get( 'targetID' ): False
-  } )
+  target_id = event.get( 'targetID' )
+  if target_id in event_data[ 'entities' ]:
+    event_data[ 'entities' ][ target_id ].update( {
+      'alive': False,
+      'exists': True
+    } )
 
 def initialize_objects( _, event_data ):
-  players = getPlayers( event_data[ 'params' ] )
-  event_data[ 'alive_players' ] = {
-    player.get( 'id' ): True
-    for player in players
-  }
-  event_data[ 'candidate_to_soak' ] = {
-    player.get( 'id' ): 0
-    for player in players
-  }
-  event_data[ 'double_soakers' ] = {
-    player.get( 'id' ): 0
-    for player in players
-  }
-  event_data[ 'soak_latency' ] = {
-    player.get( 'id' ): []
-    for player in players
+  entities = wcl.getMasterData( event_data[ 'params' ] )
+  event_data[ 'entities' ] = {
+    entity.get( 'id' ): {
+      'exists': False,
+      'name': entity.get( 'name' ),
+      'type': entity.get( 'type' ),
+      'subtype': entity.get( 'subType' ),
+      'alive': True,
+      'soak_candidate': 0,
+      'soaks': [],
+      'position': {
+        'x': 0,
+        'y': 0,
+        'last_update': -1
+      }
+    }
+    for entity in entities
+    if entity.get( 'type' ) in [ 'NPC', 'Player' ]
   }
 
-def flaming_germination( reportCodes ):
+  event_data.update( {
+    'boss_info': entity
+    for entity in event_data[ 'entities' ].values()
+    if entity[ 'name' ] == "Tindral Sageswift"
+  } ) # yapf: disable
+
+def flaming_germination( reportCodes, groups ):
   event_data_base = {
-    'types': {},
-    'positions': {},
-    'last_soak': {},
-    'soak_latency': {},
-    'alive_players': {},
-    'candidate_to_soak': {},
-    'double_soakers': {},
-    'soak_locations': [],
-    'last_cast': 0
+    'entities': {},
+    'boss_info': {},
+    'last_boss_cast': 0
   }
   data = report_code_to_events(
     reportCodes,
     {
-      'limit':
-      25000,
-      'includeResources':
-      True,
-      'filterExpression':
-      "type in ('damage', 'resourcechange', 'cast', 'heal', 'drain', 'encounterstart', 'death')"
+      'limit': 25000,
+      'includeResources': True,
+      'filterExpression': "type in ('damage', 'resourcechange', 'cast', 'heal', 'drain', 'encounterstart', 'death')"
     },
     lambda fight: fight.get( 'name' ) == 'Tindral Sageswift, Seer of the Flame',
     event_data_base,
     [
+      {
+        'type': 'encounterstart',
+        'callback': initialize_objects
+      },
       {
         'type': 'damage',
         'abilityGameID': 430584,
@@ -136,101 +141,111 @@ def flaming_germination( reportCodes ):
         'callback': boss_cast
       },
       {
-        'any': True,
-        'callback': update_pos
-        # 'callback': lambda e, e_d: ( capture_types( e, e_d ), update_pos( e, e_d ) ) # yapf: disable
-      },
-      {
-        'type': 'encounterstart',
-        'callback': initialize_objects
-      },
-      {
         'type': 'death',
         'callback': death
-      }
+      },
+      {
+        'any': True,
+        'callback': update_pos
+      },
     ]
   )
 
-  position_data = flatten_event_data( data, event_data_base )[ 'soak_locations' ]
+  def get_value_in_data( entry, target_id, data ):
+    return [
+        value.get( entry )
+        for r in data.values()
+        for f in r.values()
+        for child_id, value in f[ 'entities' ].items()
+        if child_id == target_id
+    ]
+
+  def reduce_identical_entries( entry, target_id, data ):
+    entries = get_value_in_data( entry, target_id, data )
+    first = entries[0]
+    if all( [
+        name == first
+        for name in entries
+    ] ):
+      return first
+    return entries
+
+  entities = {
+    target_id: {
+      'exists': reduce_identical_entries( 'exists', target_id, data ),
+      'name': reduce_identical_entries( 'name', target_id, data ),
+      'soak_candidate': sum( get_value_in_data( 'soak_candidate', target_id, data ) ),
+      'soaks': [
+        soak
+        for soaks in get_value_in_data( 'soaks', target_id, data )
+        for soak in soaks
+      ],
+      'soak_count': None,
+      'double_soak_count': None,
+    }
+    for report_data in data.values()
+    for fight_data in report_data.values()
+    for target_id in fight_data[ 'entities' ].keys()
+    if any( get_value_in_data( 'exists', target_id, data ) )
+  }
+
+  for target_data in entities.values():
+    target_data.update( {
+      'soak_count': len( [
+        soak
+        for soak in target_data[ 'soaks']
+        if not soak.get( 'double_soak' )
+      ] ),
+      'double_soak_count': len( [
+        soak
+        for soak in target_data[ 'soaks']
+        if soak.get( 'double_soak' )
+      ] ),
+    } )
+
   if TEXT_REPORT:
-    latency_data = {
-      player: {
-        'latencies':
-        [
-          latency
-          for report_data in data.values()
-          for fight_data in report_data.values()
-          for p, latencies in fight_data['soak_latency'].items()
-          if p == player
-          for latency in latencies
-        ],
-        'candidate_to_soak': sum( [
-          count
-          for report_data in data.values()
-          for fight_data in report_data.values()
-          for p, count in fight_data['candidate_to_soak'].items()
-          if p == player
-        ] ),
-        'double_soaks': sum( [
-          count
-          for report_data in data.values()
-          for fight_data in report_data.values()
-          for p, count in fight_data['candidate_to_soak'].items()
-          if p == player
-        ] )
+    print( json.dumps( entities, indent=2 ) )
+
+  if GRAPHICAL_REPORT or GRAPHICAL_REPORT_2:
+    def get_group_id( target_name, groups ):
+      for g_id, group in enumerate( groups ):
+        if target_name in group:
+          return g_id
+      return -1
+
+    color_map = 'rgbcm'
+    soaks = [
+      {
+        'x': position[ 'x' ],
+        'y': position[ 'y' ],
+        'delta': soak.get( 'timestamp' ) - soak.get( 'last_boss_cast' ),
+        'group_color': color_map[ get_group_id( player_data[ 'name' ], groups ) ]
       }
-      for report_data in data.values()
-      for fight_data in report_data.values()
-      for player in fight_data['soak_latency'].keys()
-    } # yapf: disable
-
-
-    params = data[ reportCodes[ 0 ] ][ 0 ][ 'params' ]
-    output = []
-    for player_id, vals in latency_data.items():
-      player_name = getPlayerFromID( player_id, params )
-      latencies = vals.get( 'latencies', [] )
-      soak_count = len( latencies )
-      mean_latency = sum( latencies ) / soak_count
-      candidate_to_soak = vals.get( 'candidate_to_soak' )
-      output.append( {
-        'name': player_name,
-        'latencies': latencies,
-        'mean_latency': mean_latency,
-        'soak_count': soak_count,
-        'candidate_to_soak': candidate_to_soak,
-        'double_soaks': vals.get( 'double_soaks' )
-      } )
-
-    output = sorted( output, key=lambda e: e.get( 'mean_latency' ) )
-    print(json.dumps(output, indent=2))
-    print(json.dumps(position_data, indent=2))
+      for player_data in entities.values()
+      for soak in player_data[ 'soaks' ]
+      for position in [ relative_pos( soak.get( 'target_position' ), soak.get( 'boss_position' ) ) ]
+    ]
+    soaks.append( {
+      'x': 0,
+      'y': 0,
+      'delta': min( [ soak.get('delta') for soak in soaks ] ), # pyright: ignore
+      'group_color': 'white'
+    } )
 
   if GRAPHICAL_REPORT:
     plot.style.use( 'dark_background' )
-    colors = [ l.get('latency') for l in position_data ]
-    shortest_soak = min(colors)
-    longest_soak = max(colors)
-    colors = [
-      (color - shortest_soak) / (longest_soak - shortest_soak)
-      for color in colors
-    ] + [ 0 ]
-    points = [ [ l.get( t ) for l in position_data ] + [0] for t in [ 'x', 'y' ] ]
     plot.scatter(
-      *points,
-      c=colors,
+      *[ [ s.get( l ) for s in soaks ] for l in [ 'x','y' ] ], # pyright: ignore
+      c=[ s.get( 'delta' ) for s in soaks ], # pyright: ignore
       cmap="jet"
     )
     plot.colorbar()
     plot.show()
 
-
-  # def set_default( obj ):
-  #   if isinstance( obj, set ):
-  #     return list( obj )
-  #   raise TypeError
-
-  # import json
-  # for report_code, report_data in data.items():
-  #   for fight_id, fight_data in report_data.items():
-  #     print(json.dumps(fight_data['types'], indent=2, default=set_default))
+  if GRAPHICAL_REPORT_2:
+    plot.style.use( 'dark_background' )
+    plot.scatter(
+      *[ [ s.get( l ) for s in soaks ] for l in [ 'x','y' ] ], # pyright: ignore
+      c=[ s.get( 'group_color' ) for s in soaks ] # pyright: ignore
+    )
+    plot.show()
