@@ -251,12 +251,13 @@ def flaming_germination( reportCodes, groups ):
     plot.show()
 
 def flaming_germination_2( report_codes, groups ):
-  Analyzer(
+  t = Analyzer(
     report_codes,
+    groups=groups,
     callbacks=[
       {
         'any': True,
-        'callback': lambda s, e, e_d: (e)
+        'callback': lambda s, e, e_d: s.event_data.update( { 100: 'hello' } )
       },
     ],
     params={
@@ -266,3 +267,4 @@ def flaming_germination_2( report_codes, groups ):
     },
     fight_filter=lambda f: f.get( 'name' ) in [ 'Tindral Sageswift, Seer of the Flame', 'Tindral Sageswift' ]
   )
+  print(json.dumps(t.data, indent=2))

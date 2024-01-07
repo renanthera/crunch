@@ -143,6 +143,11 @@ class Analyzer:
     self.event_data = deepcopy( self.kwargs.get( 'event_data', {} ) )
     return True
 
+  def process_events( self ):
+    for event_id, event in enumerate( wcl.getEvents( self.kwargs.get( 'params' ) ) ):
+      self.execute_callbacks( event, event_id )
+    return True
+
   def execute_callbacks( self, event, event_id ):
     event_data = self.event_data | { 'event_id': event_id }
     executed_callbacks = [
@@ -160,13 +165,18 @@ class Analyzer:
         for callback in self.kwargs.get( 'callbacks', [] )
         if callback.get( 'otherwise' ) == True
       ]
-    return True
 
   def __init__( self, report_codes, **kwargs ):
     self.report_codes = report_codes
     self.kwargs = kwargs
-
     self.fight_count = 0
+
+    # for each fight id in each report code
+    # - filter fights in fight_data based on user-defined function and default_fight_filter
+    # - print report code and self.fight_count
+    # - update parameters with fight start and end
+    # - make a copy of event_data
+    # - process events in fight with callbacks via process_events and execute_callbacks
     self.data = [
       {
         'report_code': report_code,
@@ -175,12 +185,11 @@ class Analyzer:
       }
       for report_code in report_codes
       if self.update_params( { 'code': report_code } )
-      for fight_id, fight_data in enumerate( wcl.getFights( self.kwargs.get( 'params' ) ) )
+      for fight_id, fight_data in enumerate( wcl.getFights( self.kwargs.get( 'params', {} ) ) )
       if self.default_fight_filter( fight_data )
       if self.kwargs.get( 'fight_filter', lambda: True )( fight_data )
       if self.print_fight_info( report_code )
       if self.update_params( { 'startTime': fight_data.get( 'startTime' ), 'endTime': fight_data.get( 'endTime' ) } )
       if self.update_event_data()
-      for event_id, event in enumerate( wcl.getEvents( self.kwargs.get( 'params' ) ) )
-      if self.execute_callbacks( event, event_id )
+      if self.process_events()
     ]
