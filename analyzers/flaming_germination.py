@@ -249,3 +249,20 @@ def flaming_germination( reportCodes, groups ):
       c=[ s.get( 'group_color' ) for s in soaks ] # pyright: ignore
     )
     plot.show()
+
+def flaming_germination_2( report_codes, groups ):
+  Analyzer(
+    report_codes,
+    callbacks=[
+      {
+        'any': True,
+        'callback': lambda s, e, e_d: (e)
+      },
+    ],
+    params={
+      'limit': 25000,
+      'includeResources': True,
+      'filterExpression': "type in ('damage', 'resourcechange', 'cast', 'heal', 'drain', 'encounterstart', 'death')"
+    },
+    fight_filter=lambda f: f.get( 'name' ) in [ 'Tindral Sageswift, Seer of the Flame', 'Tindral Sageswift' ]
+  )

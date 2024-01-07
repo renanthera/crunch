@@ -9,14 +9,14 @@ import uuid
 def cache( Request ):
   def decorator( query ):
     ret = None
+    cache = Cache()
 
     if query.cacheable:
-      cache = Cache()
       ret = Request( query, cache.get_artifact( query.string ) )
     if ret is None:
       ret = Request( query )
-    if query.cacheable:
-      cache.put_artifact( query.string, ret.data ) # pyright: ignore
+    if query.cacheable and not cache.lookup_uuid( query.string ):
+      cache.put_artifact( query.string, ret.data )
     return ret
 
   return decorator

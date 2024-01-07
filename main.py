@@ -121,7 +121,9 @@ import analyzers
 #   'XDk2aVCLnyBFKHPr',
 # ] )
 
-analyzers.flaming_germination.flaming_germination(
+import cProfile
+
+cProfile.run("""analyzers.flaming_germination.flaming_germination_2(
   [
     'dJ8yqMXVctHR3CDa'
   ],
@@ -130,4 +132,21 @@ analyzers.flaming_germination.flaming_germination(
   ['Meowge', 'Softmograne', 'Zinglefus', 'Jeefy'],
   ['Impdh', 'Skovrogue', 'Reddevviil', 'Yusoon'],
   ['Stragnim', 'Kreemlock', 'Zenvi', 'Harreks']]
-)
+)""")
+
+# k = (o := 'hello')
+
+# print(k)
+# print(o)
+
+# class Test:
+#   def __init__(self, cb):
+#     self.test = 'asdf'
+#     cb( self )
+
+
+# def callback( self ):
+#   print(self.test)
+
+
+# a = Test( callback )

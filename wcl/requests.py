@@ -8,10 +8,9 @@ from requests.exceptions import HTTPError
 @caching.cache
 class Request:
   v2_endpoint = 'https://www.warcraftlogs.com/api/v2/client'
-  cache = caching.Cache()
   token = token.Token()
 
-  DEBUG = False
+  DEBUG = True
 
   def __init__( self, query, data=None ):
     self.query = query

@@ -1,7 +1,7 @@
 import wcl
 from copy import deepcopy
 
-__all__ = [ "report_code_to_events", "flatten_event_data" ]
+__all__ = [ "report_code_to_events", "flatten_event_data", "Analyzer" ]
 # not happy with how this function feels to use, but it greatly improves
 # writing nearly all analyzers as the pattern is quite repetitive
 # TODO: Improve interface with method
@@ -105,7 +105,6 @@ def fight_to_events( params, fight_id, fight ):
   } )
   return params, wcl.getEvents( params )
 
-
 # given the typical return shape of report_code_to_events event_data, flatten
 # it to look like event_data_base
 def flatten_event_data( event_data, event_data_base ):
@@ -121,3 +120,67 @@ def flatten_event_data( event_data, event_data_base ):
     ]
     for key in event_data_base.keys()
   }
+
+#
+class Analyzer:
+
+  def print_fight_info( self, report_code ):
+    self.fight_count += 1
+    print( f'report code: {report_code} | fight id: {self.fight_count}')
+    return True
+
+  def default_fight_filter( self, fight_data ):
+    assert isinstance( fight_data, dict ), 'fight_data must be a dict'
+    start_time = fight_data.get( 'startTime', 0 )
+    end_time = fight_data.get( 'endTime', 1e100 )
+    return end_time - start_time > 1e3 * 10
+
+  def update_params( self, update ):
+    self.kwargs.get( 'params', {} ).update( update )
+    return True
+
+  def update_event_data( self ):
+    self.event_data = deepcopy( self.kwargs.get( 'event_data', {} ) )
+    return True
+
+  def execute_callbacks( self, event, event_id ):
+    event_data = self.event_data | { 'event_id': event_id }
+    executed_callbacks = [
+      callback.get( 'callback', lambda *_: True )( self, event, event_data )
+      for callback in self.kwargs.get( 'callbacks', [] )
+      if all( [
+          event.get( key ) == value
+          for key, value in callback.items()
+          if key != 'callback'
+      ] ) or callback.get( 'any' ) == True
+    ]
+    if len( executed_callbacks ) < 1:
+      [
+        callback.get( 'callback', lambda *_: True )( self, event, event_data )
+        for callback in self.kwargs.get( 'callbacks', [] )
+        if callback.get( 'otherwise' ) == True
+      ]
+    return True
+
+  def __init__( self, report_codes, **kwargs ):
+    self.report_codes = report_codes
+    self.kwargs = kwargs
+
+    self.fight_count = 0
+    self.data = [
+      {
+        'report_code': report_code,
+        'fight_id': fight_id,
+        'event_data': self.event_data
+      }
+      for report_code in report_codes
+      if self.update_params( { 'code': report_code } )
+      for fight_id, fight_data in enumerate( wcl.getFights( self.kwargs.get( 'params' ) ) )
+      if self.default_fight_filter( fight_data )
+      if self.kwargs.get( 'fight_filter', lambda: True )( fight_data )
+      if self.print_fight_info( report_code )
+      if self.update_params( { 'startTime': fight_data.get( 'startTime' ), 'endTime': fight_data.get( 'endTime' ) } )
+      if self.update_event_data()
+      for event_id, event in enumerate( wcl.getEvents( self.kwargs.get( 'params' ) ) )
+      if self.execute_callbacks( event, event_id )
+    ]
