@@ -1,6 +1,5 @@
-from . import caching, query, token
+from . import caching, token
 
-from os import path
 import requests
 import json
 from requests.exceptions import HTTPError
@@ -10,7 +9,7 @@ class Request:
   v2_endpoint = 'https://www.warcraftlogs.com/api/v2/client'
   token = token.Token()
 
-  DEBUG = True
+  DEBUG = False
 
   def __init__( self, query, data=None ):
     self.query = query

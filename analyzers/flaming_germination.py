@@ -202,9 +202,27 @@ def flaming_germination( reportCodes, groups ):
         if soak.get( 'double_soak' )
       ] ),
     } )
+    filtered_latencies = [
+      soak.get( 'timestamp' ) - soak.get( 'last_boss_cast' )
+      for soak in target_data[ 'soaks' ]
+      if not soak.get( 'double_soak' )
+    ]
+
+    if len( filtered_latencies ) != 0:
+      target_data.update( {
+        'mean_latency': sum( filtered_latencies ) / len( filtered_latencies )
+      } )
 
   if TEXT_REPORT:
-    print( json.dumps( entities, indent=2 ) )
+    out = {
+      target_id: {
+        key: value
+        for key, value in player.items()
+        if key in [ 'name', 'soak_candidate', 'soak_count', 'double_soak_count', 'mean_latency'  ]
+      }
+      for target_id, player in entities.items()
+    }
+    print( json.dumps( out, indent=2 ) )
 
   if GRAPHICAL_REPORT or GRAPHICAL_REPORT_2:
     def get_group_id( target_name, groups ):
@@ -213,7 +231,7 @@ def flaming_germination( reportCodes, groups ):
           return g_id
       return -1
 
-    color_map = 'rgbcm'
+    color_map = 'rgbcmy'
     soaks = [
       {
         'x': position[ 'x' ],

@@ -13,7 +13,7 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
     report_code: {}
     for report_code in report_codes
   }
-  event_data_local = deepcopy(event_data_base)
+  event_data_local = deepcopy( event_data_base )
   event_data_local.update( {
     'params': params_base
   } )
@@ -27,7 +27,6 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
     # - initialized start and end timestamps to large values (0, 1e100)
     # gather fights in report code
     params, fights = report_to_fights( report_code, params_base, fight_filter )
-
 
     for fight_id, fight in enumerate( fights ):
       # if fight_id != 5:
@@ -46,7 +45,6 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
       event_datum[ report_code ].update( {
         fight_id: event_data
       } )
-
 
       for event_id, event in enumerate( events ):
         # update event_id field so we have current event array position
@@ -68,8 +66,7 @@ def report_code_to_events( report_codes, params_base, fight_filter, event_data_b
         ] # yapf: disable
         if len( callbacks_executed ) < 1:
           [
-            callback.get( 'callback', lambda *_: None )( event, event_data )
-            for callback in callbacks
+            callback.get( 'callback', lambda *_: None )( event, event_data ) for callback in callbacks
             if callback.get( 'otherwise' ) == True
           ]
     #   if fight_id == 5:
@@ -110,23 +107,17 @@ def fight_to_events( params, fight_id, fight ):
 def flatten_event_data( event_data, event_data_base ):
   return {
     key: [
-      value
-      for report_code in event_data.values()
-      for fight_data in report_code.values()
-      for source_key, elements in fight_data.items()
-      if isinstance( elements, list )
-      if source_key == key and source_key in event_data_base.keys()
-      for value in elements
+      value for report_code in event_data.values() for fight_data in report_code.values()
+      for source_key,
+      elements in fight_data.items() if isinstance( elements, list )
+      if source_key == key and source_key in event_data_base.keys() for value in elements
     ]
     for key in event_data_base.keys()
   }
 
-#
 class Analyzer:
-
-  def print_fight_info( self, report_code ):
-    self.fight_count += 1
-    print( f'report code: {report_code} | fight id: {self.fight_count}')
+  def update_params( self, update ):
+    self.kwargs.get( 'params', {} ).update( update ) # yapf: disable
     return True
 
   def default_fight_filter( self, fight_data ):
@@ -135,12 +126,13 @@ class Analyzer:
     end_time = fight_data.get( 'endTime', 1e100 )
     return end_time - start_time > 1e3 * 10
 
-  def update_params( self, update ):
-    self.kwargs.get( 'params', {} ).update( update )
+  def print_fight_info( self, report_code ):
+    self.fight_count += 1
+    print( f'report code: {report_code} | fight id: {self.fight_count}' )
     return True
 
   def update_event_data( self ):
-    self.event_data = deepcopy( self.kwargs.get( 'event_data', {} ) )
+    self.event_data = deepcopy( self.kwargs.get( 'event_data', {} ) ) # yapf: disable
     return True
 
   def process_events( self ):
@@ -149,7 +141,7 @@ class Analyzer:
     return True
 
   def execute_callbacks( self, event, event_id ):
-    event_data = self.event_data | { 'event_id': event_id }
+    event_data = self.event_data | { 'event_id': event_id } # yapf: disable
     executed_callbacks = [
       callback.get( 'callback', lambda *_: True )( self, event, event_data )
       for callback in self.kwargs.get( 'callbacks', [] )
@@ -157,14 +149,14 @@ class Analyzer:
           event.get( key ) == value
           for key, value in callback.items()
           if key != 'callback'
-      ] ) or callback.get( 'any' ) == True
-    ]
+      ] ) or callback.get( 'any' ) == True # yapf: ignore
+    ] # yapf: disable
     if len( executed_callbacks ) < 1:
       [
         callback.get( 'callback', lambda *_: True )( self, event, event_data )
         for callback in self.kwargs.get( 'callbacks', [] )
         if callback.get( 'otherwise' ) == True
-      ]
+      ] # yapf: disable
 
   def __init__( self, report_codes, **kwargs ):
     self.report_codes = report_codes
@@ -189,7 +181,10 @@ class Analyzer:
       if self.default_fight_filter( fight_data )
       if self.kwargs.get( 'fight_filter', lambda: True )( fight_data )
       if self.print_fight_info( report_code )
-      if self.update_params( { 'startTime': fight_data.get( 'startTime' ), 'endTime': fight_data.get( 'endTime' ) } )
+      if self.update_params( {
+          'startTime': fight_data.get( 'startTime' ),
+          'endTime': fight_data.get( 'endTime' )
+      } )
       if self.update_event_data()
       if self.process_events()
-    ]
+    ] # yapf: disable

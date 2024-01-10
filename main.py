@@ -123,7 +123,7 @@ import analyzers
 
 analyzers.flaming_germination.flaming_germination(
   [
-    'dJ8yqMXVctHR3CDa'
+    'AVRh3LdawCzY8HKB'
   ],
   [['Lagrimas', 'Katebrew', 'Dandaniel', 'Chizgoblin'],
   ['Draxxii', 'Diosita', 'Goines', 'Ralfie'],
@@ -131,3 +131,23 @@ analyzers.flaming_germination.flaming_germination(
   ['Impdh', 'Skovrogue', 'Reddevviil', 'Yusoon'],
   ['Stragnim', 'Kreemlock', 'Zenvi', 'Harreks']]
 )
+
+# analyzers.flaming_germination.flaming_germination(
+#   [
+#     'QcW7Z9wajrVRHg8h',
+#     'AQhTbnvBy79a62wW',
+#     'RjfChnxgt3a8Hypz',
+#     'qfvFcyw6LxYHkJ1W',
+#     'BmWntKhD6b3VFAkT',
+#     'WhnymKat6LrC31fV',
+#     'Lk31Aa2KBnTctwWC',
+#     'RDkG7VxpC1haP4y3',
+#     'kBfxNpzyKDY9nF1w',
+#     '2qWtK4JPTbw9BH8d',
+#   ],
+#   [
+#     ['Sinzhu', 'Sussyj', 'Liadryn', 'Jessndecay', 'Olvil', 'Ipsa'],
+#     ['Honeymoon', 'Phunt', 'Dragonexarch', 'Remslock', 'Vlces', 'Mystictouch'],
+#     ['Learning', 'Eyebrowz', 'Glimmerer', 'Tacofajita', 'Hunkytwunky', 'Bobblywobbly']
+#   ]
+# )
