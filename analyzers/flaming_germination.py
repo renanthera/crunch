@@ -45,7 +45,8 @@ def soak_seed( event, event_data ):
     'last_boss_cast': last_boss_cast,
     'target_position': deepcopy( target_position ),
     'boss_position': deepcopy( boss_position ),
-    'double_soak': previous_soak_timestamp >= last_boss_cast and True or False
+    'double_soak': previous_soak_timestamp >= last_boss_cast and True or False,
+    'cast_count': event_data[ 'cast_count' ]
   }
   event_data[ 'entities' ][ target_id ].update( {
     'exists': True
@@ -63,6 +64,7 @@ def soak_seed( event, event_data ):
 def boss_cast( event, event_data ):
   event_data[ 'last_boss_cast' ] = event.get( 'timestamp' )
   event_data[ 'boss_info' ][ 'exists' ] = True
+  event_data[ 'cast_count' ] += 1
   for player_info in event_data[ 'entities' ].values():
     if player_info[ 'alive' ]:
       player_info.update( {
@@ -114,7 +116,8 @@ def flaming_germination( reportCodes, groups ):
   event_data_base = {
     'entities': {},
     'boss_info': {},
-    'last_boss_cast': 0
+    'last_boss_cast': 0,
+    'cast_count': 0
   }
   data = report_code_to_events(
     reportCodes,
@@ -179,6 +182,7 @@ def flaming_germination( reportCodes, groups ):
         soak
         for soaks in get_value_in_data( 'soaks', target_id, data )
         for soak in soaks
+        # if soak.get( 'cast_count' ) > 3
       ],
       'soak_count': None,
       'double_soak_count': None,
@@ -231,7 +235,9 @@ def flaming_germination( reportCodes, groups ):
           return g_id
       return -1
 
+    # Red Green Blue Cyan Magenta Yellow blacK White
     color_map = 'rgbcmy'
+    # color_map = 'kgkkmk'
     soaks = [
       {
         'x': position[ 'x' ],
