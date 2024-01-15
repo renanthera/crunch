@@ -9,7 +9,7 @@ class Request:
   v2_endpoint = 'https://www.warcraftlogs.com/api/v2/client'
   token = token.Token()
 
-  DEBUG = False
+  DEBUG = True
 
   def __init__( self, query, data=None ):
     self.query = query

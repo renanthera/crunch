@@ -281,7 +281,7 @@ def flaming_germination_2( report_codes, groups ):
     callbacks=[
       {
         'any': True,
-        'callback': lambda s, e, e_d: s.event_data.update( { 100: 'hello' } )
+        'callback': lambda s, e: s.event_data.update( { 100: e } )
       },
     ],
     params={
@@ -289,6 +289,6 @@ def flaming_germination_2( report_codes, groups ):
       'includeResources': True,
       'filterExpression': "type in ('damage', 'resourcechange', 'cast', 'heal', 'drain', 'encounterstart', 'death')"
     },
-    fight_filter=lambda f: f.get( 'name' ) in [ 'Tindral Sageswift, Seer of the Flame', 'Tindral Sageswift' ]
+    fight_filter=lambda _, f: f.get( 'name' ) in [ 'Tindral Sageswift, Seer of the Flame', 'Tindral Sageswift' ]
   )
   print(json.dumps(t.data, indent=2))

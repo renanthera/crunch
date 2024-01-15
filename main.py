@@ -102,10 +102,10 @@ import analyzers
 #   'vr1RPbDWJ9YakM8j',
 # ] )
 
-# analyzers.press_the_advantage.damage( [
-#   'xrfcz1d34vjJ2LqM',
-#   'Ncd1HmvAMBJDzWPh',
-# ] )
+analyzers.press_the_advantage.bug_detection( [
+  # 'xrfcz1d34vjJ2LqM',
+  'ny4h6wmpKVbHZq7Q'
+] )
 
 # analyzers.t31_brew.proc( [
 #   'bkrPDQ1ZtTGRphWn',
@@ -121,16 +121,16 @@ import analyzers
 #   'XDk2aVCLnyBFKHPr',
 # ] )
 
-analyzers.flaming_germination.flaming_germination(
-  [
-    'AVRh3LdawCzY8HKB'
-  ],
-  [['Lagrimas', 'Katebrew', 'Dandaniel', 'Chizgoblin'],
-  ['Draxxii', 'Diosita', 'Goines', 'Ralfie'],
-  ['Meowge', 'Softmograne', 'Zinglefus', 'Jeefy'],
-  ['Impdh', 'Skovrogue', 'Reddevviil', 'Yusoon'],
-  ['Stragnim', 'Kreemlock', 'Zenvi', 'Harreks']]
-)
+# analyzers.flaming_germination.flaming_germination(
+#   [
+#     'AVRh3LdawCzY8HKB'
+#   ],
+#   [['Lagrimas', 'Katebrew', 'Dandaniel', 'Chizgoblin'],
+#   ['Draxxii', 'Diosita', 'Goines', 'Ralfie'],
+#   ['Meowge', 'Softmograne', 'Zinglefus', 'Jeefy'],
+#   ['Impdh', 'Skovrogue', 'Reddevviil', 'Yusoon'],
+#   ['Stragnim', 'Kreemlock', 'Zenvi', 'Harreks']]
+# )
 
 # analyzers.flaming_germination.flaming_germination(
 #   [

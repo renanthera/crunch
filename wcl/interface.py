@@ -1,4 +1,7 @@
 import json
+from copy import deepcopy
+
+from numpy import char
 
 from . import query
 from .requests import Request
@@ -7,14 +10,20 @@ def getFights( params ):
   return Request( query.Fights( params ) ).data
 
 def getPlayerDetails( params ):
-  return Request( query.PlayerDetails( params )
-                 ).data.get( 'data' ).get( 'playerDetails' ) # pyright: ignore
+  return Request( query.PlayerDetails( params ) ).data.get( 'data', {} ).get( 'playerDetails', {} ) or {} # pyright: ignore
 
 def getMasterData( params ):
   return Request( query.Actors( params ) ).data
 
 def getEvents( params ):
-  return Request( query.Events( params ) ).data.get( 'data' ) or {} # pyright: ignore
+  return Request( query.Events( params ) ).data.get( 'data', {} )
+
+def getCombatantInfo( params ):
+  params_copy = deepcopy( params )
+  params_copy.update( {
+    'filterExpression': "type in ('combatantinfo')"
+  } )
+  return Request( query.Events( params_copy ) ).data.get( 'data', [] )
 
 def printFights( params ):
   req = getFights( params )
@@ -60,6 +69,35 @@ def getPlayerFromID( id, params ):
 def getPlayers( params ):
   return [
     char
-    for role in getPlayerDetails(params).values()
+    for role in getPlayerDetails( params ).values()
     for char in role
+  ]
+
+def getPlayersBySpec( params, spec_filter ):
+  return [
+    player
+    for player in getPlayers( params )
+    if any( [ spec.get( 'spec' ) == spec_filter for spec in player[ 'specs' ] ] )
+  ]
+
+def getPlayersWithTalent( params, talent_id ):
+  talent_tree_names = [
+    'talentTree', 'talent_tree'
+  ]
+  sourceIDs_with_talent = [
+    combatant_info.get( 'sourceID' )
+    for combatant_info in getCombatantInfo( params )
+    if any( [
+      talent.get( 'spellID' ) == talent_id
+      for talent in [
+          entry
+          for option in talent_tree_names
+          for entry in combatant_info.get( option, [] )
+      ]
+    ] )
+  ]
+  return [
+    player
+    for player in getPlayers( params )
+    if player.get( 'id', -1 ) in sourceIDs_with_talent
   ]

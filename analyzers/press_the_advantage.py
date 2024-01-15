@@ -117,3 +117,50 @@ def damage( reportCodes ):
   plot.show()
 
   # print(aggregate)
+
+def bug_detection( report_codes ):
+  import wcl
+  import json
+
+  def fight_params_update( self ):
+    players = [
+      "'" + player.get( 'name', '') + "'"
+      for player in wcl.getPlayersWithTalent( self.params, 418359 )
+    ]
+
+    if players == []:
+      self.custom_fight_filter = lambda *_: False
+      return {}
+
+    types =[
+      "'" + t + "'"
+      for t in [
+      'applybuff',
+      'applybuffstack',
+      'refreshbuff',
+      'removebuff',
+      'removebuffstack',
+      'cast'
+    ] ]
+    player_names = ', '.join( players )
+    type_names = ', '.join( types )
+
+    return {
+      'filterExpression': f"source.name in ({player_names}) and type in ({type_names}) "
+    }
+
+  analyzer = Analyzer(
+    report_codes,
+    callbacks=[
+      # {
+      #   'any': True,
+      #   'callback': lambda _, event: print( event )
+      # }
+    ],
+    params={
+      'limit': 25000,
+    },
+    fight_params_update=fight_params_update
+  )
+
+  print( json.dumps( analyzer.data, indent=2 ) )
