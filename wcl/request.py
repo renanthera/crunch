@@ -1,4 +1,7 @@
-from . import caching, token
+if __package__:
+  from . import caching, oauth_token
+else:
+  import caching, oauth_token
 
 import requests
 import json
@@ -7,7 +10,7 @@ from requests.exceptions import HTTPError
 @caching.cache
 class Request:
   v2_endpoint = 'https://www.warcraftlogs.com/api/v2/client'
-  token = token.Token()
+  token = oauth_token.Token()
 
   DEBUG = True
 
@@ -17,7 +20,7 @@ class Request:
 
   def get_request( self ):
     def https_request( retry=0 ):
-      query_string = self.query.stringify()
+      query_string = str( self.query )
 
       if self.DEBUG:
         print( 'requesting', query_string )
@@ -66,7 +69,7 @@ class Request:
     # print(json.dumps(resp, indent=2))
 
     if resp.get( 'errors' ): # pyright: ignore
-      print( f'Failed to complete {self.query.string}' )
+      print( f'Failed to complete {str( self.query )}' )
       print( json.dumps( resp, indent=2 ) )
       raise SystemExit
 

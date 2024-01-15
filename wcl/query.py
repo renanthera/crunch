@@ -1,24 +1,30 @@
+from copy import deepcopy
+
 class Query:
-  params = {}
-  parent = None
+  # params
+  query_params = {}
   cacheable = True
+
+  # internal objects
+  args = {}
+  children = None
+  fields = []
+  name = None
+  parent = None
   paginator = {
     'paginationField': None,
-    'overrides': None
+    'overrides': None,
+    'callback': None
   }
-  args = {}
-  fields = []
-  children = None
 
   def components( self ):
-    name = self.__class__.__name__
     pagination_field = self.paginator.get( 'paginationField' )
     return {
-      'name': name[ 0 ].lower() + name[ 1: ],
+      'name': self.name,
       'args': {
-        argk: GQL_type_handler( argt, self.params.get( argk ) )
+        argk: GQL_Type_Handler( argt, self.query_params.get( argk ) )
         for argk, argt in self.args.items()
-        if self.params.get( argk ) is not None
+        if self.query_params.get( argk ) is not None
       },
       'fields': [
         field if isinstance( field, dict ) else { 'name': field }
@@ -27,29 +33,32 @@ class Query:
       ]
     } # yapf: disable
 
-  def __init__( self, params, cacheable=None ):
-    self.params = params.copy()
-    self.children = params.get( 'children' )
+  def __init__( self, query_params, cacheable=None ):
+    self.query_params = deepcopy( query_params )
 
+    self.children = self.query_params.get( 'children' )
     self.tree = self.create_tree()
     self.string = self.stringify()
     self.cacheable = cacheable if cacheable is not None else self.cacheable
 
   def update( self, params ):
-    assert all([ type(self.params.get(key)) is type(params.get(key)) or params.get(key) is None for key in self.params]), 'Types of values do not match'
-    assert params != self.params, 'Params are unchanged'
+    assert all( [
+      type( self.query_params.get( key ) ) is type( params.get( key ) ) or params.get( key ) is None
+      for key in self.query_params
+    ] ), 'Types of values do not match'
+    assert params != self.query_params, 'Params are unchanged'
 
-    self.params.update( params )
+    self.query_params.update( params )
     self.tree = self.create_tree()
 
   def create_tree( self ):
-    self.params.update( {
+    self.query_params.update( {
       'children': self.components()
     } )
 
     if self.parent is None:
-      return self.params.get( 'children' )
-    return self.parent( self.params ).tree
+      return self.query_params.get( 'children' )
+    return self.parent( self.query_params ).tree
 
   def stringify( self ):
     def recurse_nodes( node ):
@@ -70,39 +79,39 @@ class Query:
 
     return '{' + recurse_nodes( self.tree ) + '}'
 
-def GQL_type_handler( argt, value ):
+def GQL_Type_Handler( argt, value ):
   if isinstance( argt, list ):
     return GQL_List( value, argt[ 0 ] )
   return argt( value )
 
-class GraphQLType:
+class GQL_Type:
   def __init__( self, value ):
     self.value = value
 
-class GQL_Boolean( GraphQLType ):
+class GQL_Boolean( GQL_Type ):
   def __str__( self ):
     return str( self.value and 'true' or 'false' )
 
-class GQL_String( GraphQLType ):
+class GQL_String( GQL_Type ):
   def __str__( self ):
     return '"' + str( self.value ) + '"'
 
-class GQL_Int( GraphQLType ):
+class GQL_Int( GQL_Type ):
   def __str__( self ):
     return str( self.value )
 
-class GQL_Float( GraphQLType ):
+class GQL_Float( GQL_Type ):
   def __str__( self ):
     return str( self.value )
 
-class GQL_Enum( GraphQLType ):
+class GQL_Enum( GQL_Type ):
   allowed = []
 
   def __str__( self ):
     assert self.value in self.allowed, f'{self.value} not in Enum {self.__class__.__name__}'
     return self.value
 
-class GQL_List( GraphQLType ):
+class GQL_List( GQL_Type ):
   def __init__( self, value, secondaryType ):
     super().__init__( value )
     self.secondaryType = secondaryType
@@ -219,3 +228,356 @@ class Events( Query ):
   }
 
   fields = [ 'data' ]
+
+class Reports( Query ):
+  parent = ReportData
+  paginator = {
+    'paginationField': 'current_page',
+    'overrides': 'page'
+  }
+
+  args = {
+    'endTime': GQL_Float,
+    'guildID': GQL_Int,
+    'guildName': GQL_String,
+    'guildServerSlug': GQL_String,
+    'guildServerRegion': GQL_String,
+    'guildTagID': GQL_Int,
+    'userID': GQL_Int,
+    'limit': GQL_Int,
+    'page': GQL_Int,
+    'startTime': GQL_Float,
+    'zoneID': GQL_Int,
+    'gameZoneID': GQL_Int
+  }
+
+  fields = [
+    'data',
+    'total',
+    'per_page',
+    'current_page',
+    'from',
+    'to',
+    'last_page',
+    'has_more_pages'
+  ]
+
+# GQL 2.0
+# object_name( {argument_key: argument_value, ...} ){ [field, ...] }
+
+class GQL_OBJECT:
+  # Provided by instantiator
+  alias = None
+  args = {}
+  fields = {}
+
+  # Provided by code generation
+  arg_types = {}
+  field_types = {}
+  name = None
+  parent = None
+  paginator = {
+    'field': None,
+    'replaces': None,
+    'callback': None
+  }
+
+  def __init__( self, args, fields ):
+    # Update name of child in fields and in the child object
+    # children may have multiple parents, and be called different things by each
+    if fields.get( 'child' ) is not None:
+      expected_name = None
+      child = fields[ 'child' ]
+      for name, t in self.field_types.items():
+        if isinstance( child, t ):
+          expected_name = name
+          break
+      if expected_name is not None:
+        fields.update( { expected_name: child } )
+        fields[ expected_name ].name = expected_name
+        fields.pop( 'child' )
+
+
+    # Verify all arguments and fields are of the expected types
+    assert all( [
+      isinstance( arg_v, expected_type )
+      for arg_k, arg_v in args.items()
+      if ( expected_type := self.arg_types.get( arg_k ) )
+    ] ), f'Not all args are for {self.__class__.__name__} ({self.name}) are of the expected type.\n{args}\n{self.arg_types}'
+    assert all( [
+      isinstance( field_v, expected_type )
+      for field_k, field_v in fields.items()
+      if ( expected_type := self.field_types.get( field_k ) )
+    ] ), f'Not all fields are for {self.__class__.__name__} ({self.name}) are of the expected type.\n{fields}\n{self.field_types}'
+
+    self.args = args
+    self.fields = fields
+
+  def __str__( self ):
+    args = [
+      f'{key}: {str( value )}'
+      for key, value in self.args.items()
+      if hasattr( value, '__str__' ) and key in self.arg_types.keys()
+    ] # yapf: disable
+    fields = [
+      f'{str( value )}'
+      for key, value in self.fields.items()
+      if hasattr( value, '__str__' ) and key in self.field_types.keys()
+    ] # yapf: disable
+    args_str = ('(' if len( args ) > 0 else '') + ','.join( args ) + (')' if len( args ) > 0 else '')
+    fields_str = ('{' if len( fields ) > 0 else '') + ','.join( fields ) + ('}' if len( fields ) > 0 else '')
+    alias_str = self.alias + ': ' if self.alias is not None else ''
+    return f'{alias_str}{self.name}{args_str}{fields_str}'
+
+  def tree( self ):
+    if self.parent is not None:
+      # print( f'creating {self.parent.__name__} with:\nargs: {self.args}\nfields: {self.fields | { "child": self }}')
+      return self.parent( self.args, self.fields | { 'child': self } ).tree()
+    return self
+
+class GQL_SCALAR:
+  def __init__( self, value ):
+    self.value = value
+
+  def __str__( self ):
+    return f'{self.value}'
+
+class GQL_SCALAR_Boolean( GQL_SCALAR ):
+  def __str__( self ):
+    return f'{self.value and "true" or "false"}'
+
+class GQL_SCALAR_Float( GQL_SCALAR ):
+  pass
+
+class GQL_SCALAR_Int( GQL_SCALAR ):
+  pass
+
+class GQL_SCALAR_String( GQL_SCALAR ):
+  def __str__( self ):
+    return f'"{self.value}"'
+
+class GQL_ENUM:
+  allowed = []
+
+  def __init__( self, value ):
+    self.value = value
+
+  def __str__( self ):
+    assert self.value in self.allowed, f'{self.value} is not in Enum {self.__class__.__name__}.'
+    return f'{self.value}'
+
+# class GQL_OBJECT_<NAME>( GQL_Object ):
+#   def __init__( self, args, fields ):
+#     self.arg_types = {
+#       <ARG_NAME>: GQL_<ARG_TYPE_NAME>,
+#       ...
+#     }
+#     self.field_types = {
+#       <FIELD_NAME>: GQL_<FIELD_TYPE_NAME>,
+#       ...
+#     }
+#     self.name = <NAME_FIELD>
+#     self.parent = GQL_<PARENT_TYPE_NAME>
+#     self.paginator = {
+#       'field': <FIELD_NAME>,
+#       'replaces': <ARG_NAME>,
+#       'callback': <lambda FIELD_VALUE: ARG_VALUE>
+#     }
+#     super().__init__( args, fields )
+class GQL_Test1( GQL_OBJECT ):
+  def __init__( self, args, fields ):
+    self.name = 'test-one'
+    self.field_types = {
+      'newname-two': GQL_Test2
+    }
+    super().__init__( args, fields )
+
+class GQL_Test2( GQL_OBJECT ):
+  def __init__( self, args, fields ):
+    self.name = 'test-two'
+    self.parent = GQL_Test1
+    super().__init__( args, fields )
+
+if __name__ == '__main__':
+  import json
+  import request
+  from itertools import product
+
+  class SchemaIntrospection:
+    schema_location = 'wcl/introspection_query.json'
+    tree = { 'name': '__schema' }
+    paginator = {}
+    cacheable = True
+
+    def __str__( self ):
+      with open( self.schema_location, 'r' ) as handle:
+        data = handle.read()
+      return data
+
+  schema_query = SchemaIntrospection()
+  schema_request_data = request.Request( schema_query ).data
+  t = set()
+
+  enums = []
+  objects = []
+  for entry in schema_request_data[ 'types' ]:
+    # filter = [
+    #   'name',
+    #   'kind',
+    # ]
+    # print([ f'{e}: {v}' for e, v in entry.items() if e in filter ])
+    if entry.get( 'kind' ) == 'OBJECT':
+      objects.append( entry )
+    if entry.get( 'kind' ) == 'ENUM':
+      enums.append( entry )
+
+
+  # print( 'from .query import GQL_ENUM, GQL_OBJECT')
+  # for enum in enums:
+  #   name = enum.get( 'name' )
+  #   descr = enum.get( 'description' )
+  #   print()
+  #   if descr is not None:
+  #     print( f'# {descr}')
+  #   print( f'class GQL_ENUM_{name}( GQL_ENUM ):')
+  #   print( '  allowed = [')
+  #   max_len = max( [
+  #     len( enum_value.get( 'name', '' ) )
+  #     for enum_value in enum.get( 'enumValues' )
+  #   ] ) + 2
+  #   enum_values = [
+  #     {
+  #       'name': val.get( 'name' ),
+  #       'desc': val.get( 'description' ),
+  #     }
+  #     for val in enum.get( 'enumValues' )
+  #   ]
+  #   for enum_value in enum_values:
+  #     enum_value_name = enum_value.get( 'name', '' ) + '\','
+  #     enum_value_descr = enum_value.get( 'desc', '' )
+  #     print( f'    \'{enum_value_name: <{max_len}} # {enum_value_descr}')
+  #   print( '  ]')
+
+
+  def find_type( obj ):
+    base = obj.get( 'type' ) or obj.get( 'ofType' )
+    if base[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
+      return base[ 'name' ]
+    return find_type( base )
+
+  def objects_with_matching_type( type_name ):
+    rets = []
+    for obj in objects:
+      fields = obj.get( 'fields', [] )
+      for field in fields:
+        if type_name == find_type( field ) and field.get( 'args' ) != []:
+          rets.append( field )
+    return rets
+
+  def object_name_from_type( type_obj ):
+    if type_obj[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
+      return f'GQL_{type_obj[ "kind" ]}_{type_obj[ "name" ]}'
+    if type_obj[ 'kind' ] in [ 'LIST', 'NON_NULL' ]:
+      type_obj = type_obj[ 'ofType' ]
+      return f'GQL_{type_obj[ "kind" ]}_{type_obj[ "name" ]}'
+
+  def object_name( type_obj ):
+    if type_obj[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
+      return f'{type_obj[ "name" ]}'
+    if type_obj[ 'kind' ] in [ 'LIST', 'NON_NULL' ]:
+      type_obj = type_obj[ 'ofType' ]
+      return f'{type_obj[ "name" ]}'
+
+  def process_arg_or_field( entry ):
+    return {
+      'TYPE': object_name_from_type( entry[ 'type' ] ),
+      'IS_LIST': entry[ 'type' ][ 'kind' ] == 'LIST',
+      'DESCRIPTION': entry[ 'description' ]
+    }
+
+  def objects_have_matching_type( a, b ):
+    matches = [
+      object_name( field[ 'type' ] ) == a[ 'name' ]
+      for field in b[ 'fields' ]
+    ]
+    return b[ 'fields' ][ matches.index( True ) ] if True in matches else False
+
+  objects = [
+    {
+      'TYPE_NAME': base[ 'name' ],
+      'NAME': variant_obj[ 'name' ],
+      'VARIANT_COUNT': max( 1, len( objects_with_matching_type( base[ 'name' ] ) ) ),
+      'PARENT': None,
+      'ARGS': {
+        arg[ 'name' ]: process_arg_or_field( arg )
+        for arg in variant_obj[ 'args' ]
+        },
+      'FIELDS': {
+        field[ 'name' ]: process_arg_or_field( field )
+        for field in base[ 'fields' ]
+        },
+      'DESCRIPTION': [
+        description
+        for description in [ base[ 'description' ], variant_obj[ 'description' ] ]
+        if description
+        ]
+      }
+    for base, variant in product( objects, objects )
+    if base[ 'name' ][ :2 ] != '__'
+    if ( variant_obj := objects_have_matching_type( base, variant ) )
+  ]
+
+  # print(json.dumps(objects, indent=2))
+  # objnames = {
+  #   obj.get('NAME')
+  #   for obj in objects
+  # }
+  objnames = set()
+  # print( len( objnames ), len( objects ) )
+  for u, v in product (objects, objects):
+    if u.get('NAME') == v.get('NAME') and u != v:
+      print()
+      print(u.get('NAME'), u.get('TYPE_NAME'))
+      print(v.get('NAME'), v.get('TYPE_NAME'))
+
+  # for obj in objects:
+  #   type_name = obj[ 'name' ]
+  #   if type_name != 'Report':
+  #     continue
+  #   descr = obj[ 'description' ]
+  #   fields = []
+  #   for it in objects:
+  #     candidates = it.get( 'fields', [] )
+  #     for candidate in candidates:
+  #       if find_type( candidate ) == type_name:
+  #         fields.append( candidate )
+  #   for k in fields:
+  #     print( find_type( k ) )
+  #     print(k)
+  #   print()
+  #   if descr is not None:
+  #     print( f'# {descr}')
+  #   print( f'class GQL_OBJECT_{type_name}( GQL_OBJECT ):' )
+  #   print(  '  def __init__( self, args, fields ):' )
+  #   print(  '    self.arg_types = {' )
+  #   print(  '    }' )
+  #   print(  '    self.field_types = {' )
+  #   print(  '    }' )
+  #   print( f'    self.name = {type_name}' )
+  #   # for e, v in obj.items():
+  #   #   if e == 'fields':
+  #   #     q = set()
+  #   #     for x in v:
+  #   #       print( x.get('name'))
+  #   #       print( x.get('type'))
+  #   #       for q in x.get( 'args' ):
+  #   #         for w, e in q.items():
+  #   #           print( w, e)
+  #         # print( x.get('args'))
+  #         # for o, p in x.items():
+  #           # q.add( o )
+  #       # print( f'{e}: {v}')
+  #   for e in obj.keys():
+  #     t.add( e )
+
+  # # print(t)

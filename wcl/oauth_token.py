@@ -1,6 +1,4 @@
-import time
-import json
-import pickle
+import time, json, pickle
 
 from requests.exceptions import HTTPError
 from oauthlib.oauth2 import BackendApplicationClient
