@@ -120,7 +120,7 @@ class Analyzer:
     self.params.update( update )
     if update_fn is not None:
       update_fn_data = update_fn( self ) or {}
-      self.kwargs.get( 'params', {} ).update( update_fn_data )
+      self.params.update( update_fn_data )
       return True
     return True
 
@@ -130,29 +130,30 @@ class Analyzer:
     end_time = fight_data.get( 'endTime', 1e100 )
     return end_time - start_time > 1e3 * 10
 
-  def print_fight_info( self, report_code ):
-    self.fight_count += 1
-    print( f'report code: {report_code} | fight id: {self.fight_count}' )
+  def print_fight_info( self ):
+    print( f'report code: {self.report_code} | fight id: {self.fight_id}' )
     return True
 
-  def update_event_data( self ):
+  def update_analyzer( self, report_code, fight_data, fight_id ):
     self.event_data = deepcopy( self.event_data_base ) # yapf: disable
+    self.report_code = report_code
+    self.fight_data = fight_data
+    self.fight_id = fight_id
     return True
 
   def process_events( self ):
-    for event_id, event in enumerate( wcl.getEvents( self.kwargs.get( 'params' ) ) ):
-      self.execute_callbacks( event, event_id )
+    self.events = wcl.getEvents( self.params )
+    for event_id, event in enumerate( self.events ):
+      self.event_id = event_id
+      self.execute_callbacks( event )
     return True
 
-  def execute_callbacks( self, event, event_id ):
-    self.event_data.update( {
-      'event_id': event_id
-    } )
+  def execute_callbacks( self, event ):
     executed_callbacks = [
       callback.get( 'callback', lambda *_: True )( self, event )
       for callback in self.callbacks
       if all( [
-          event.get( key ) == value
+          event.get( key ) == value or isinstance( value, list ) and event.get( key ) in value
           for key, value in callback.items()
           if key != 'callback'
       ] ) or callback.get( 'any' ) == True
@@ -173,32 +174,25 @@ class Analyzer:
     self.custom_fight_filter = self.kwargs.get( 'fight_filter', lambda *_: True )
     self.callbacks = self.kwargs.get( 'callbacks', [] )
 
-    self.fight_count = 0
-
     wcl.getPointsSpent()
 
-    # for each fight id in each report code
-    # - filter fights in fight_data based on user-defined function and default_fight_filter
-    # - print report code and self.fight_count
-    # - update parameters with fight start and end
-    # - make a copy of event_data
-    # - process events in fight with callbacks via process_events and execute_callbacks
     self.data = [
       {
         'report_code': report_code,
-        'fight_id': fight_data.get( 'id', -1 ),
+        'fight_id': self.fight_id,
         'event_data': self.event_data
       }
       for report_code in report_codes
       if self.update_params( { 'code': report_code }, self.report_params_update )
       for fight_data in wcl.getFights( self.params )
-      if self.update_event_data()
+      if self.default_fight_filter( fight_data )
+      if self.update_analyzer( report_code, fight_data, fight_data.get( 'id', -1 ) )
       if self.update_params( {
           'startTime': fight_data.get( 'startTime' ),
           'endTime': fight_data.get( 'endTime' )
       }, self.fight_params_update )
-      if self.default_fight_filter( fight_data ) and self.custom_fight_filter( self, fight_data )
-      if self.print_fight_info( report_code )
+      if self.custom_fight_filter( self )
+      if self.print_fight_info()
       if self.process_events()
     ] # yapf: disable
 

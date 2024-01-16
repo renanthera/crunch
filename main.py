@@ -103,8 +103,10 @@ import analyzers
 # ] )
 
 analyzers.press_the_advantage.bug_detection( [
-  # 'xrfcz1d34vjJ2LqM',
-  'ny4h6wmpKVbHZq7Q'
+  'xrfcz1d34vjJ2LqM',
+  'CXgx2FPYybAjvn1H',
+  'ny4h6wmpKVbHZq7Q',
+  'gbD8RQrZK7vj1hWF'
 ] )
 
 # analyzers.t31_brew.proc( [
