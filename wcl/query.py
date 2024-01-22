@@ -431,6 +431,15 @@ if __name__ == '__main__':
     if entry.get( 'kind' ) == 'ENUM':
       enums.append( entry )
 
+  names = [
+    e.get('name')
+    for e in objects
+  ]
+  # print( names )
+  # print( len(names))
+  # print(len(set(names)))
+  print(json.dumps(objects, indent=2))
+
 
   # print( 'from .query import GQL_ENUM, GQL_OBJECT')
   # for enum in enums:
@@ -459,125 +468,70 @@ if __name__ == '__main__':
   #   print( '  ]')
 
 
-  def find_type( obj ):
-    base = obj.get( 'type' ) or obj.get( 'ofType' )
-    if base[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
-      return base[ 'name' ]
-    return find_type( base )
+  # def find_type( obj ):
+  #   base = obj.get( 'type' ) or obj.get( 'ofType' )
+  #   if base[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
+  #     return base[ 'name' ]
+  #   return find_type( base )
 
-  def objects_with_matching_type( type_name ):
-    rets = []
-    for obj in objects:
-      fields = obj.get( 'fields', [] )
-      for field in fields:
-        if type_name == find_type( field ) and field.get( 'args' ) != []:
-          rets.append( field )
-    return rets
+  # def objects_with_matching_type( type_name ):
+  #   rets = []
+  #   for obj in objects:
+  #     fields = obj.get( 'fields', [] )
+  #     for field in fields:
+  #       if type_name == find_type( field ) and field.get( 'args' ) != []:
+  #         rets.append( field )
+  #   return rets
 
-  def object_name_from_type( type_obj ):
-    if type_obj[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
-      return f'GQL_{type_obj[ "kind" ]}_{type_obj[ "name" ]}'
-    if type_obj[ 'kind' ] in [ 'LIST', 'NON_NULL' ]:
-      type_obj = type_obj[ 'ofType' ]
-      return f'GQL_{type_obj[ "kind" ]}_{type_obj[ "name" ]}'
+  # def object_name_from_type( type_obj ):
+  #   if type_obj[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
+  #     return f'GQL_{type_obj[ "kind" ]}_{type_obj[ "name" ]}'
+  #   if type_obj[ 'kind' ] in [ 'LIST', 'NON_NULL' ]:
+  #     type_obj = type_obj[ 'ofType' ]
+  #     return f'GQL_{type_obj[ "kind" ]}_{type_obj[ "name" ]}'
 
-  def object_name( type_obj ):
-    if type_obj[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
-      return f'{type_obj[ "name" ]}'
-    if type_obj[ 'kind' ] in [ 'LIST', 'NON_NULL' ]:
-      type_obj = type_obj[ 'ofType' ]
-      return f'{type_obj[ "name" ]}'
+  # def object_name( type_obj ):
+  #   if type_obj[ 'kind' ] in [ 'SCALAR', 'ENUM', 'OBJECT' ]:
+  #     return f'{type_obj[ "name" ]}'
+  #   if type_obj[ 'kind' ] in [ 'LIST', 'NON_NULL' ]:
+  #     type_obj = type_obj[ 'ofType' ]
+  #     return f'{type_obj[ "name" ]}'
 
-  def process_arg_or_field( entry ):
-    return {
-      'TYPE': object_name_from_type( entry[ 'type' ] ),
-      'IS_LIST': entry[ 'type' ][ 'kind' ] == 'LIST',
-      'DESCRIPTION': entry[ 'description' ]
-    }
+  # def process_arg_or_field( entry ):
+  #   return {
+  #     'TYPE': object_name_from_type( entry[ 'type' ] ),
+  #     'IS_LIST': entry[ 'type' ][ 'kind' ] == 'LIST',
+  #     'DESCRIPTION': entry[ 'description' ]
+  #   }
 
-  def objects_have_matching_type( a, b ):
-    matches = [
-      object_name( field[ 'type' ] ) == a[ 'name' ]
-      for field in b[ 'fields' ]
-    ]
-    return b[ 'fields' ][ matches.index( True ) ] if True in matches else False
+  # def objects_have_matching_type( a, b ):
+  #   matches = [
+  #     object_name( field[ 'type' ] ) == a[ 'name' ]
+  #     for field in b[ 'fields' ]
+  #   ]
+  #   return b[ 'fields' ][ matches.index( True ) ] if True in matches else False
 
-  objects = [
-    {
-      'TYPE_NAME': base[ 'name' ],
-      'NAME': variant_obj[ 'name' ],
-      'VARIANT_COUNT': max( 1, len( objects_with_matching_type( base[ 'name' ] ) ) ),
-      'PARENT': None,
-      'ARGS': {
-        arg[ 'name' ]: process_arg_or_field( arg )
-        for arg in variant_obj[ 'args' ]
-        },
-      'FIELDS': {
-        field[ 'name' ]: process_arg_or_field( field )
-        for field in base[ 'fields' ]
-        },
-      'DESCRIPTION': [
-        description
-        for description in [ base[ 'description' ], variant_obj[ 'description' ] ]
-        if description
-        ]
-      }
-    for base, variant in product( objects, objects )
-    if base[ 'name' ][ :2 ] != '__'
-    if ( variant_obj := objects_have_matching_type( base, variant ) )
-  ]
-
-  # print(json.dumps(objects, indent=2))
-  # objnames = {
-  #   obj.get('NAME')
-  #   for obj in objects
-  # }
-  objnames = set()
-  # print( len( objnames ), len( objects ) )
-  for u, v in product (objects, objects):
-    if u.get('NAME') == v.get('NAME') and u != v:
-      print()
-      print(u.get('NAME'), u.get('TYPE_NAME'))
-      print(v.get('NAME'), v.get('TYPE_NAME'))
-
-  # for obj in objects:
-  #   type_name = obj[ 'name' ]
-  #   if type_name != 'Report':
-  #     continue
-  #   descr = obj[ 'description' ]
-  #   fields = []
-  #   for it in objects:
-  #     candidates = it.get( 'fields', [] )
-  #     for candidate in candidates:
-  #       if find_type( candidate ) == type_name:
-  #         fields.append( candidate )
-  #   for k in fields:
-  #     print( find_type( k ) )
-  #     print(k)
-  #   print()
-  #   if descr is not None:
-  #     print( f'# {descr}')
-  #   print( f'class GQL_OBJECT_{type_name}( GQL_OBJECT ):' )
-  #   print(  '  def __init__( self, args, fields ):' )
-  #   print(  '    self.arg_types = {' )
-  #   print(  '    }' )
-  #   print(  '    self.field_types = {' )
-  #   print(  '    }' )
-  #   print( f'    self.name = {type_name}' )
-  #   # for e, v in obj.items():
-  #   #   if e == 'fields':
-  #   #     q = set()
-  #   #     for x in v:
-  #   #       print( x.get('name'))
-  #   #       print( x.get('type'))
-  #   #       for q in x.get( 'args' ):
-  #   #         for w, e in q.items():
-  #   #           print( w, e)
-  #         # print( x.get('args'))
-  #         # for o, p in x.items():
-  #           # q.add( o )
-  #       # print( f'{e}: {v}')
-  #   for e in obj.keys():
-  #     t.add( e )
-
-  # # print(t)
+  # objects = [
+  #   {
+  #     'TYPE_NAME': base[ 'name' ],
+  #     'NAME': variant_obj[ 'name' ],
+  #     'VARIANT_COUNT': max( 1, len( objects_with_matching_type( base[ 'name' ] ) ) ),
+  #     'PARENT': None,
+  #     'ARGS': {
+  #       arg[ 'name' ]: process_arg_or_field( arg )
+  #       for arg in variant_obj[ 'args' ]
+  #       },
+  #     'FIELDS': {
+  #       field[ 'name' ]: process_arg_or_field( field )
+  #       for field in base[ 'fields' ]
+  #       },
+  #     'DESCRIPTION': [
+  #       description
+  #       for description in [ base[ 'description' ], variant_obj[ 'description' ] ]
+  #       if description
+  #       ]
+  #     }
+  #   for base, variant in product( objects, objects )
+  #   if base[ 'name' ][ :2 ] != '__'
+  #   if ( variant_obj := objects_have_matching_type( base, variant ) )
+  # ]

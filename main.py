@@ -1,3 +1,4 @@
+from os import truncate
 import analyzers
 import wcl
 
@@ -60,46 +61,135 @@ import wcl
 # )
 
 class GQL_OBJECT:
-  active = []
   name = 'GQL_OBJECT'
-  def __init__( self, child_class_name = '', child_str = '' ):
-    self.child_class_name = child_class_name
-    self.child_str = child_str
+  args = {}
+  fields = {}
 
+  params = {}
+  def __init__( self ):
+    # object metadata configuration
     self.parent = self.__class__.__mro__[1]
-    self.children = list(self.__class__.__subclasses__())
+    # defer evaluation until runtime so classes are defined
+    self.args = {
+      key: eval( value )
+      for key, value in self.args.items()
+      # if print(key, value)or True
+    }
+    self.fields = {
+      key: eval( value )
+      for key, value in self.fields.items()
+    }
+
+  def init( self, params ):
+    def ancestor_list( obj ):
+      parent = obj.parent()
+      if parent.name != 'GQL_OBJECT':
+        yield from ancestor_list( parent )
+      yield obj
+
+    self.params = params
+    self.ancestors = list( ancestor_list( self ) )
+    self.ancestor_names = [ ancestor.name for ancestor in self.ancestors ]
+    for ancestor in self.ancestors[:-1]:
+      ancestor.init( self.params )
+
+  def str( self, ancestor_names ):
+    assert self.params, 'Initialization incomplete'
+    args = [
+      f'{argk}: {argv}'
+      for argk, argv_t in self.args.items()
+      if ( argv := self.params.get( argk ) )
+      if isinstance( argv, argv_t ) or argv_t.is_compatible( argv )
+    ]
+    fields = [
+      f'{argk}'
+      for argk in self.fields.keys()
+      if argk in self.params.keys() and argk not in ancestor_names
+    ]
+    args_str = f'({", ".join(args)})' if args else ''
+    fields_str = f'{", ".join(fields)}'
+    return self.name, args_str, fields_str
 
   def __str__( self ):
-    children = [
-      self.child_str if child.name == self.child_class_name else str( child.name )
-      for child in self.children
-      if child.name in self.active
-    ]
-    ret = self.name
-    if len( children ):
-      ret += '{' + ', '.join( children ) + '}'
-    if self.parent.__name__ != 'GQL_OBJECT':
-      return str( self.parent( self.name, ret ) )
-    return '{' + ret + '}'
+    string = ''
+    for ancestor in reversed( self.ancestors ):
+      ancestor_name, ancestor_args_str, ancestor_fields_str = ancestor.str( self.ancestor_names )
+      fields_str = ancestor_fields_str + ( ', ' if ancestor_fields_str else '' ) + string
+      fields_str = f'{{{fields_str}}}' if ancestor_fields_str or string else fields_str
+      string = f'{ancestor_name}{ancestor_args_str}{fields_str}'
+    return f'{{{string}}}'
 
 class query( GQL_OBJECT ):
   name = 'query'
-  active = [ 'report' ]
-  report = lambda *args, **kwargs: eval( '_QrsNKiY_WLpJ6Iu_report' )( *args, **kwargs )
+  args = {}
+  fields = {
+    'report': '_QrsNKiY_WLpJ6Iu_report',
+  }
 
 class _QrsNKiY_WLpJ6Iu_report( query, GQL_OBJECT ):
   name = 'report'
-  active = [ 'code', 'events' ]
-  code = lambda *args, **kwargs: eval( '_MqAkvZzWS6CGIGj_code' )( *args, **kwargs )
-  events = lambda *args, **kwargs: eval( '_GZ3efcSVmPvraRn_events' )( *args, **kwargs )
-
-class _MqAkvZzWS6CGIGj_code( _QrsNKiY_WLpJ6Iu_report, GQL_OBJECT ):
-  name = 'code'
+  args = {
+    'code': 'GQL_String',
+  }
+  fields = {
+    'code': 'GQL_String',
+    'events': '_GZ3efcSVmPvraRn_events',
+  }
 
 class _GZ3efcSVmPvraRn_events( _QrsNKiY_WLpJ6Iu_report, GQL_OBJECT ):
   name = 'events'
+  args = {
+    'startTime': 'GQL_Int',
+    'endTime': 'GQL_Int',
+  }
+  fields = {}
 
-print( query().report().events() )
+class GQL_T:
+  compatible_list = []
+  value = None
+  def __init__( self, value ):
+    self.value = value
+  @classmethod
+  def is_compatible( cls, obj ):
+    if type(obj) in cls.compatible_list:
+      return True
+    return False
+
+class GQL_String( GQL_T ):
+  compatible_list = [ str ]
+  def __str__( self ):
+    return f'"{self.value}"'
+
+class GQL_Int( GQL_T ):
+  compatible_list = [ int ]
+  def __str__( self ):
+    return str(self.value)
+
+
+def query_lookup( *args ):
+  current = eval( f'{args[0]}()' )
+  for arg in args[1:]:
+    current = current.fields[ arg ]()
+  return current
+
+params = {
+  'code': 'asdfjkl',
+  'startTime': 100,
+  'endTime': 200,
+  'report': 'asdf',
+  'events': True
+}
+
+# print( query_lookup( 'query', 'report', 'events' )( params ) )
+# print( query().report().events() )
+# print( query().report() )
+q = query_lookup( 'query', 'report', 'events' )
+q.init( params )
+print( q )
+
+# print( query_lookup( 'query', 'report', 'events' )() )
+# print( query_lookup( 'query', 'report' )() )
+# print( query_lookup( 'query' )() )
 
 import unicodedata
 from keyword import iskeyword
