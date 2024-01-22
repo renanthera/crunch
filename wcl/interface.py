@@ -1,8 +1,6 @@
 import json
 from copy import deepcopy
 
-from numpy import char
-
 from . import query, request
 
 def getFights( params ):
