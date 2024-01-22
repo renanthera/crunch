@@ -170,22 +170,33 @@ def bug_detection( report_codes ):
 
   def consume_pta( self, event ):
     previous_application = self.event_data[ 'pta_stacks' ]
-    if previous_application[ 'stack' ] != 10 and event.get( 'timestamp' ) - previous_application[ 'timestamp' ] < 20 * 1000:
+    if previous_application[ 'stack' ] != 10:
       return
     self.event_data[ 'pta_stacks' ].update( {
-      'stack': 0,
-      'timestamp': event.get( 'timestamp' )
+      'stack': 0
     } )
+    if event.get( 'timestamp' ) - previous_application[ 'timestamp' ] > 20 * 1000:
+      return
+
+    if any( [
+        v.get( 'up' )
+        for k, v in self.event_data[ 'other_buffs' ].items()
+        if k == 228563
+    ] ):
+      self.event_data[ 'pta_triggers_with_buff' ] += 1
     self.event_data[ 'pta_triggers' ] += 1
-    # print( '  pta triggered' )
-    # print( '  searching for pta trigger cast, starting at\n  ', end='')
-    # print_event( self, self.events[ self.event_id + 1] )
+    print( '  pta triggered' )
+    print( '  searching for pta trigger cast, starting at\n  ', end='')
+    print_event( self, self.events[ self.event_id + 1] )
     for event_next in self.events[ self.event_id + 1: ]:
       if event_next.get( 'timestamp' ) - event.get( 'timestamp' ) > 1000:
+        self.event_data[ 'pta_no_match' ] += 1
+        print('no match found')
+        print_event( self, event )
         break
       if event_next.get( 'type' ) == 'cast' and event_next.get( 'abilityGameID' ) in cast_ids:
-        # print( '  marking this event as triggered by pta:\n  ',end='')
-        # print_event( self, event_next )
+        print( '  marking this event as triggered by pta:\n  ',end='')
+        print_event( self, event_next )
         if not event_next.get( 'triggered_by_pta' ):
           event_next.update( {
             'triggered_by_pta': True,
@@ -196,7 +207,8 @@ def bug_detection( report_codes ):
   def check_buffs( self, event ):
     if event.get( 'triggered_by_pta' ) and any( [
         v.get( 'up' ) and v.get( 'timestamp' ) < event.get( 'trigger_timestamp' )
-        for v in self.event_data[ 'other_buffs' ].values()
+        for k, v in self.event_data[ 'other_buffs' ].items()
+        if k == 228563
     ] ):
       # print( 'bug detected' )
       # print( self.event_data[ 'other_buffs' ] )
@@ -225,7 +237,7 @@ def bug_detection( report_codes ):
       #   'callback': lambda s, e: print( e.get('sourceID'))
       # },
       {
-        'abilityGameID': [ 228563, 383800 ],
+        'abilityGameID': [ 228563, 383800 ], #, 383800
         'type': [ 'applybuff', 'refreshbuff', 'removebuff' ],
         'callback': other_buffs
       },
@@ -255,7 +267,9 @@ def bug_detection( report_codes ):
         383800: { 'up': False, 'timestamp': 0 }
       },
       'bug_counter': 0,
-      'pta_triggers': 0
+      'pta_triggers': 0,
+      'pta_triggers_with_buff': 0,
+      'pta_no_match': 0
     },
     params={
       'limit': 25000,
