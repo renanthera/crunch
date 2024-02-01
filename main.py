@@ -62,23 +62,40 @@ import wcl
 
 class GQL_OBJECT:
   name = 'GQL_OBJECT'
-  args = {}
   fields = {}
 
   params = {}
-  def __init__( self ):
-    # object metadata configuration
-    self.parent = self.__class__.__mro__[1]
+  def __init__( self, ancestry=None ):
     # defer evaluation until runtime so classes are defined
-    self.args = {
-      key: eval( value )
-      for key, value in self.args.items()
-      # if print(key, value)or True
-    }
-    self.fields = {
-      key: eval( value )
-      for key, value in self.fields.items()
-    }
+    self.fields = [
+      field | {
+        'type': eval( field[ 'type' ] ),
+        'args': [
+          { argk: eval( argv_t ) for argk, argv_t in arg.items() }
+          for arg in field[ 'args' ]
+        ]
+      }
+      for field in self.fields
+    ]
+
+    if ancestry:
+      self.ancestors = [ eval( f'GQL_Object_{ancestry[0]}' )() ]
+
+"""
+currently thinking about initializing everything backwards and then i don't need evals
+deepest nodes first, then move outward
+or some smarter init strategy where you init everything without obj deps
+then check if you have resolved any deps for new objs
+repeat until objs exhausted
+
+this allows for incomplete initialization of gql objects, as all information
+is initialized prior to instantiation of any gql objects
+
+still need a way to ascertain parent in the gql tree, but a path must be provided
+to disambaguate requests from each other, or it would be unclear which path to follow
+can use that to determine ancestry of objects, thus the correct names for objects and
+use the available args
+"""
 
   def init( self, params ):
     def ancestor_list( obj ):
@@ -95,20 +112,27 @@ class GQL_OBJECT:
 
   def str( self, ancestor_names ):
     assert self.params, 'Initialization incomplete'
+    args_from_parent = []
+    name_from_parent = self.name
+    for field in self.parent().fields:
+      if isinstance( self, field[ 'type' ] ):
+        args_from_parent = field[ 'args' ]
+        name_from_parent = field[ 'name' ]
     args = [
       f'{argk}: {argv}'
-      for argk, argv_t in self.args.items()
+      for d in args_from_parent
+      for argk, argv_t in d.items()
       if ( argv := self.params.get( argk ) )
       if isinstance( argv, argv_t ) or argv_t.is_compatible( argv )
     ]
     fields = [
-      f'{argk}'
-      for argk in self.fields.keys()
-      if argk in self.params.keys() and argk not in ancestor_names
+      f'{argk[ "name" ]}'
+      for argk in self.fields
+      if argk[ 'name' ] in self.params.keys() and argk[ 'name' ] not in ancestor_names
     ]
     args_str = f'({", ".join(args)})' if args else ''
     fields_str = f'{", ".join(fields)}'
-    return self.name, args_str, fields_str
+    return name_from_parent, args_str, fields_str
 
   def __str__( self ):
     string = ''
@@ -119,30 +143,39 @@ class GQL_OBJECT:
       string = f'{ancestor_name}{ancestor_args_str}{fields_str}'
     return f'{{{string}}}'
 
-class query( GQL_OBJECT ):
+class GQL_Object_Query( GQL_OBJECT ):
   name = 'query'
-  args = {}
-  fields = {
-    'report': '_QrsNKiY_WLpJ6Iu_report',
-  }
+  fields = [
+    {
+      'name': 'report',
+      'type': 'GQL_Object_Report',
+      'args': [
+        { 'code': 'GQL_String' },
+      ]
+    },
+  ]
 
-class _QrsNKiY_WLpJ6Iu_report( query, GQL_OBJECT ):
+class GQL_Object_Report( GQL_Object_Query, GQL_OBJECT ):
   name = 'report'
-  args = {
-    'code': 'GQL_String',
-  }
-  fields = {
-    'code': 'GQL_String',
-    'events': '_GZ3efcSVmPvraRn_events',
-  }
+  fields = [
+    {
+      'name': 'code',
+      'type': 'GQL_String',
+      'args': []
+    },
+    {
+      'name': 'events',
+      'type': 'GQL_Object_Events',
+      'args': [
+        { 'startTime': 'GQL_Int' },
+        { 'endTime': 'GQL_Int' },
+      ]
+    }
+  ]
 
-class _GZ3efcSVmPvraRn_events( _QrsNKiY_WLpJ6Iu_report, GQL_OBJECT ):
+class GQL_Object_Events( GQL_Object_Report, GQL_OBJECT ):
   name = 'events'
-  args = {
-    'startTime': 'GQL_Int',
-    'endTime': 'GQL_Int',
-  }
-  fields = {}
+  fields = []
 
 class GQL_T:
   compatible_list = []
@@ -167,9 +200,13 @@ class GQL_Int( GQL_T ):
 
 
 def query_lookup( *args ):
-  current = eval( f'{args[0]}()' )
+  current = eval( f'GQL_Object_{args[0]}()' )
   for arg in args[1:]:
-    current = current.fields[ arg ]()
+    n = lambda: None
+    for field in current.fields:
+      if field[ 'name' ] == arg:
+        n = field[ 'type' ]
+    current = n()
   return current
 
 params = {
@@ -183,7 +220,7 @@ params = {
 # print( query_lookup( 'query', 'report', 'events' )( params ) )
 # print( query().report().events() )
 # print( query().report() )
-q = query_lookup( 'query', 'report', 'events' )
+q = query_lookup( 'Query', 'report', 'events' )
 q.init( params )
 print( q )
 
