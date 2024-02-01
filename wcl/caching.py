@@ -1,6 +1,4 @@
-import json
-import os
-import uuid
+import json, os, uuid
 
 # Caches queries by identifier in a lookup table in `repo root/cache`.
 # As implemented in requests, identifier is completed query that has been
@@ -11,12 +9,14 @@ def cache( Request ):
     ret = None
     cache = Cache()
 
+    query_str = str( query )
+
     if query.cacheable:
-      ret = Request( query, cache.get_artifact( query.string ) )
+      ret = Request( query, cache.get_artifact( query_str ) )
     if ret is None:
       ret = Request( query )
-    if query.cacheable and not cache.lookup_uuid( query.string ):
-      cache.put_artifact( query.string, ret.data )
+    if query.cacheable and not cache.lookup_uuid( query_str ):
+      cache.put_artifact( query_str, ret.data )
     return ret
 
   return decorator

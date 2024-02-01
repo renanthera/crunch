@@ -1,29 +1,26 @@
 import json
 from copy import deepcopy
 
-from numpy import char
-
-from . import query
-from .requests import Request
+from . import query, request
 
 def getFights( params ):
-  return Request( query.Fights( params ) ).data
+  return request.Request( query.Fights( params ) ).data
 
 def getPlayerDetails( params ):
-  return Request( query.PlayerDetails( params ) ).data.get( 'data', {} ).get( 'playerDetails', {} ) or {} # pyright: ignore
+  return request.Request( query.PlayerDetails( params ) ).data.get( 'data', {} ).get( 'playerDetails', {} ) or {} # pyright: ignore
 
 def getMasterData( params ):
-  return Request( query.Actors( params ) ).data
+  return request.Request( query.Actors( params ) ).data
 
 def getEvents( params ):
-  return Request( query.Events( params ) ).data.get( 'data', {} )
+  return Request( query.Events( params ) ).data.get( 'data', {} ) or {} # pyright: ignore
 
 def getCombatantInfo( params ):
   params_copy = deepcopy( params )
   params_copy.update( {
     'filterExpression': "type in ('combatantinfo')"
   } )
-  return Request( query.Events( params_copy ) ).data.get( 'data', [] )
+  return request.Request( query.Events( params_copy ) ).data.get( 'data', [] )
 
 def printFights( params ):
   req = getFights( params )
@@ -58,7 +55,7 @@ def printPlayerDetails( params ):
 
 def getPointsSpent():
   params = {}
-  req = Request( query.PointsSpentThisHour( params ) ).data.get( 'pointsSpentThisHour' )
+  req = request.Request( query.PointsSpentThisHour( params ) ).data.get( 'pointsSpentThisHour' )
   return print( req, 'point' if req == 1 else 'points', 'spent this hour' ) # pyright: ignore
 
 def getPlayerFromID( id, params ):
