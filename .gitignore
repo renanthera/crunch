@@ -1,13 +1,12 @@
 # emacs
 .\#*
 
+# direnv
+.envrc
+
 # python
+venv
 __pycache__
-bin
-lib
-lib64
-pyvenv.cfg
-share
 
 # credentials
 credentials
