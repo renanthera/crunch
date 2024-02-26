@@ -1,4 +1,4 @@
-from query import GQL_SCALAR
+from ..query import GQL_SCALAR
 
 """
 SCALAR TYPES

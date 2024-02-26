@@ -1,4 +1,4 @@
-from query import GQL_ENUM
+from ..query import GQL_ENUM
 
 """
 ENUM TYPES
