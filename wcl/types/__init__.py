@@ -1,8 +1,4 @@
-# from . import enum, object, scalar
-from . import enum
-from . import scalar
-# from . import object
-
-"""
-asdf
-"""
+from .primitives import GQL_NON_NULL, GQL_LIST
+from .enums import *
+from .scalars import *
+from .objects import *

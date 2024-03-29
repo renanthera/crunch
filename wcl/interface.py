@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 
-from . import query, request
+from . import request
 
 def getFights( params ):
   return request.Request( query.Fights( params ) ).data

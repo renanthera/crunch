@@ -92,5 +92,3 @@ class Request:
         body[ 'data' ] += self.get_request().get( 'data' )
 
     return body
-
-  # TODO: better object resolution
