@@ -102,11 +102,43 @@ import analyzers
 #   'vr1RPbDWJ9YakM8j',
 # ] )
 
-analyzers.press_the_advantage.bug_detection( [
-  'xrfcz1d34vjJ2LqM',
-  'CXgx2FPYybAjvn1H',
-  'ny4h6wmpKVbHZq7Q',
-  'gbD8RQrZK7vj1hWF'
+# analyzers.press_the_advantage.bug_detection( [
+#   'xrfcz1d34vjJ2LqM',
+#   'CXgx2FPYybAjvn1H',
+#   'ny4h6wmpKVbHZq7Q',
+#   'gbD8RQrZK7vj1hWF'
+# ] )
+
+# analyzers.aspect_of_harmony.spender( [
+#   '3VWnfgKmDbxqRFYM'
+# ] )
+
+analyzers.dual_threat.probability_at_count( [
+  'T9pZaqbDXjKMmWYg',
+  # 'Krf8vtAZFycxJL3a'
+  'amCgRMhq2v1Hn3dQ',
+  'vr9AQ4nNYh1m7Rfb',
+  'TDRzawK863Jb4k7N',
+  'Xd8aLMchkfwGpnYb',
+  'Mzrn8DaC6dhPcpHN',
+  'AJd8hxPaz34RmVtr',
+  'D6HqBGmXZwtvK3yL',
+  'jx1Vc4C8d72Xpz9F',
+  'jD6ctdg82AJkLaGP',
+  'hc3a48AJzQVKgPGv',
+  'mN1MTvD2QjawBZkt',
+  'DQ3W9r8MHt6CRYFA',
+  'tywx1KapgfGqnk48',
+  'QVJftk4cDrRTWY3F',
+  'ntq6mkTYjRwJFMp9',
+  'K8dxQAmN7rHtWqpn',
+  'HRf7pyznh28qmVwb',
+  'hZjMQGNVYKLkvH6b',
+  'a32pZrwgyG6jbhTn',
+  'gwZbyLDRNQ2CHAGP',
+  'xzMtT2kNvYrVhmqC',
+  'L9JBRq6Xgkj4xyKz',
+  'XF1jTKqbCVwrmgaB',
 ] )
 
 # analyzers.t31_brew.proc( [

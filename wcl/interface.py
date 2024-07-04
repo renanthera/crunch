@@ -80,14 +80,26 @@ def getPlayersBySpec( params, spec_filter ):
     if any( [ spec.get( 'spec' ) == spec_filter for spec in player[ 'specs' ] ] )
   ]
 
-def getPlayersWithTalent( params, talent_id ):
-  talent_tree_names = [
-    'talentTree', 'talent_tree'
-  ]
-  sourceIDs_with_talent = [
+def getPlayerWith( params, match_fn ):
+  return [
     combatant_info.get( 'sourceID' )
     for combatant_info in getCombatantInfo( params )
-    if any( [
+    if match_fn( combatant_info )
+  ]
+
+def getPlayerNameWith( params, match_fn ):
+  return [
+    getPlayerFromID(  combatant_info.get( 'sourceID' ), params )
+    for combatant_info in getCombatantInfo( params )
+    if match_fn( combatant_info )
+  ]
+
+def getPlayerNameWithTalent( params, talent_id ):
+  def talent_match_fn( combatant_info ):
+    talent_tree_names = [
+      'talentTree', 'talent_tree'
+    ]
+    return any( [
       talent.get( 'spellID' ) == talent_id
       for talent in [
           entry
@@ -95,9 +107,7 @@ def getPlayersWithTalent( params, talent_id ):
           for entry in combatant_info.get( option, [] )
       ]
     ] )
-  ]
   return [
-    player
-    for player in getPlayers( params )
-    if player.get( 'id', -1 ) in sourceIDs_with_talent
+    getPlayerFromID( player_id, params )
+    for player_id in getPlayerWith( params, talent_match_fn )
   ]
