@@ -45,23 +45,23 @@ def fmt_timestamp( timestamp ):
   timestamp_h = timestamp_m // 60
   return f'{timestamp_h%60:02}:{timestamp_m%60:02}:{timestamp_s%60:02}.{timestamp%1000:03}'
 
-def print_events( self, event ):
-  if event.get('abilityGameID') not in [ 450763, 450820 ]:
-    print(event)
-
-def toggle( self, _ ):
+def toggle( self, event ):
   self.event_data['is_accumulating'] = not self.event_data['is_accumulating']
-  if not self.event_data['is_accumulating']:
+  if self.event_data['is_accumulating']:
     self.event_data['value'] = 0
 
 def get_damage( event ):
   return event.get( 'amount', 0 ) + event.get( 'absorbed', 0 ) + event.get( 'overkill', 0 )
 
 def accumulate( self, event ):
-  if event.get( 'abilityGameID' ) not in [ 450763, 450820 ] and event.get( 'sourceID' ) != event.get( 'targetID' ):
+  blacklist = [
+    450763, # aspect of harmony
+    450820, # purified spirit
+    123725, # breath of fire dot
+  ]
+  if event.get( 'abilityGameID' ) not in blacklist and event.get( 'sourceID' ) != event.get( 'targetID' ):
     print( fmt_timestamp( event.get('timestamp') - self.params['startTime'] ), end='' )
     print(f" {self.event_data['value']}+={get_damage(event)}*0.25 ({get_damage(event)*0.25})")
-    print(event)
     self.event_data['value'] += get_damage(event) * 0.25
 
 def p( self, event ):
@@ -74,8 +74,8 @@ def p( self, event ):
   v = self.event_data['value']
   e_v = get_damage(event)
   print( fmt_timestamp( event.get('timestamp') - self.params['startTime'] ) )
-  u("Accumulated", v, e_v * 8)
-  u("Tick", v/8, e_v)
+  u("Accumulated", v, e_v * 9)
+  u("Tick", v/9, e_v)
 
 def spender(report_codes):
   Analyzer(

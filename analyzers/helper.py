@@ -152,11 +152,11 @@ class Analyzer:
     executed_callbacks = [
       callback.get( 'callback', lambda *_: True )( self, event )
       for callback in self.callbacks
-      if all( [
+      if callback.get( 'any' ) == True or all( [
           event.get( key ) == value or isinstance( value, list ) and event.get( key ) in value
           for key, value in callback.items()
           if key != 'callback'
-      ] ) or callback.get( 'any' ) == True
+      ] )
     ] # yapf: disable
     if len( executed_callbacks ) < 1:
       [

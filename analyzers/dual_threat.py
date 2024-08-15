@@ -91,12 +91,53 @@ def probability_at_count( report_codes ):
   import json
   # print(json.dumps( t.data, indent=2))
 
-  m = max( max( [
-    [
-      index[ 'index' ] if index[ 'failed' ] > 0 or index[ 'successful' ] > 0 else 0
-      for _, value in fight[ 'event_data' ][ 'info' ].items()
-      for index in value[ 'data' ]
-    ]
-    for fight in t.data
-  ] ) )
-  print(m)
+  o = {}
+  for fight in t.data:
+    for player, data in fight[ 'event_data' ][ 'info' ].items():
+      for index in data[ 'data' ]:
+        o.setdefault(index['index'], {'SUCCESS': 0, 'FAIL': 0})
+        o[index['index']]['SUCCESS'] += index['successful']
+        o[index['index']]['FAIL'] += index['failed']
+        # if index[ 'index' ] > 14 and ( index[ 'failed' ] + index[ 'successful' ] > 0 ):
+        #   print( fight[ 'report_code' ], fight[ 'fight_id' ] )
+        #   print( player )
+        #   print( index )
+
+  print(json.dumps(o, indent=2))
+  l = [
+    ( index, success, fail )
+    for key, value in o.items()
+    if ( index := key )
+    if ( success := value['SUCCESS'] )
+    if ( fail := value['FAIL'] )
+  ]
+  print(l)
+
+  import matplotlib.pyplot as plt
+  import numpy as np
+
+  x = [
+    u
+    for v in l
+    if ( u := v[0] )
+  ]
+
+  y = [
+    u
+    for v in l
+    if ( u := v[1] / ( v[1] + v[2] ) )
+  ]
+
+  plt.style.use('dark_background')
+  plt.scatter(x, y)
+  plt.show()
+  # m = max( max( [
+  #   [
+  #     index[ 'index' ] if index[ 'failed' ] > 0 or index[ 'successful' ] > 0 else 0
+  #     for _, value in fight[ 'event_data' ][ 'info' ].items()
+  #     for index in value[ 'data' ]
+  #   ]
+  #   for fight in t.data
+  # ] ) )
+  # print('\n\n')
+  # print(m)
