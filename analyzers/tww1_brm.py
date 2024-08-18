@@ -66,11 +66,9 @@ def counts( report_codes ):
     },
   )
 
-  import json
-  # print(json.dumps(t.data, indent=2))
   o = {}
   for fight in t.data:
-    for player, data in fight[ 'event_data' ][ 'info' ].items():
+    for data in fight[ 'event_data' ][ 'info' ].values():
       if not isinstance(data, int) and any([
           index['successful']
           for index in data['data']
