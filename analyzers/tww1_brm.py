@@ -24,10 +24,10 @@ def cb( self, event ):
       info[ 'data' ][ info[ 'count_since_last' ] ][ 'successful' ] += 1
       info[ 'count_since_last' ] = 0
     else:
-      info[ 'count_since_last' ] += 1
       info[ 'data' ][ info[ 'count_since_last' ] ][ 'failed' ] += 1
+      info[ 'count_since_last' ] += 1
 
-  if True:
+  if False:
     print( fmt_timestamp( event.get('timestamp') - self.params['startTime'] ), end=' ' )
     print( event.get( 'sourceID' ), end='\t')
     if event.get( 'abilityGameID' ) == bok:
@@ -65,3 +65,42 @@ def counts( report_codes ):
       'info': {}
     },
   )
+
+  import json
+  # print(json.dumps(t.data, indent=2))
+  o = {}
+  for fight in t.data:
+    for player, data in fight[ 'event_data' ][ 'info' ].items():
+      for index in data[ 'data' ]:
+        o.setdefault(index['index'], {'SUCCESS': 0, 'FAIL': 0})
+        o[index['index']]['SUCCESS'] += index['successful']
+        o[index['index']]['FAIL'] += index['failed']
+
+  print(json.dumps(o, indent=2))
+  l = [
+    ( index, success, fail )
+    for key, value in o.items()
+    if ( index := key )
+    if ( success := value['SUCCESS'] )
+    if ( fail := value['FAIL'] )
+  ]
+  print(l)
+
+  import matplotlib.pyplot as plt
+  import numpy as np
+
+  x = [
+    u
+    for v in l
+    if ( u := v[0] )
+  ]
+
+  y = [
+    u
+    for v in l
+    if ( u := v[1] / ( v[1] + v[2] ) )
+  ]
+
+  plt.style.use('dark_background')
+  plt.scatter(x, y)
+  plt.show()

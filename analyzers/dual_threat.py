@@ -13,11 +13,12 @@ def fight_params_update( self ):
       ]
     ] )
 
-  players = [
-    f"'{player}'"
-    for player in wcl.getPlayerNameWith( self.params, entry_match_fn( 125020 ) )
-  ]
-  player_names = ', '.join( players )
+  # players = [
+  #   f"'{player}'"
+  #   for player in wcl.getPlayerNameWith( self.params, entry_match_fn( 125020 ) )
+  # ]
+  # player_names = ', '.join( players )
+  player_names = 'Pepeg'
   clause_0 = f"(source.name in ({player_names}))"
 
   clause_2_ids = [ 1, 451839 ]
@@ -65,10 +66,14 @@ def probability_at_count( report_codes ):
     report_codes,
     params={
       'limit': 25000,
-      # 'filterExpression': "ability.id in (1, 451839) and source.name = 'Jfunk'"
-      'filterExpression': "type='combatantinfo'"
+      'filterExpression': "ability.id in (1, 451839) and source.name = 'Pepeg'"
+      # 'filterExpression': "type='combatantinfo'"
     },
     callbacks=[
+      {
+        'any': True,
+        'callback': lambda _, e: print(e)
+      },
       {
         'type': 'damage',
         'abilityGameID': [ 1, 451839 ],
@@ -85,7 +90,7 @@ def probability_at_count( report_codes ):
       },
       'info': {}
     },
-    fight_params_update=fight_params_update
+    # fight_params_update=fight_params_update
   )
 
   import json
