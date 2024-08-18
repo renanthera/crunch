@@ -71,36 +71,70 @@ def counts( report_codes ):
   o = {}
   for fight in t.data:
     for player, data in fight[ 'event_data' ][ 'info' ].items():
-      for index in data[ 'data' ]:
-        o.setdefault(index['index'], {'SUCCESS': 0, 'FAIL': 0})
-        o[index['index']]['SUCCESS'] += index['successful']
-        o[index['index']]['FAIL'] += index['failed']
+      if not isinstance(data, int) and any([
+          index['successful']
+          for index in data['data']
+      ]):
+        for index in data[ 'data' ]:
+          o.setdefault(index['index'], {'SUCCESS': 0, 'FAIL': 0})
+          o[index['index']]['SUCCESS'] += index['successful']
+          o[index['index']]['FAIL'] += index['failed']
 
-  print(json.dumps(o, indent=2))
   l = [
-    ( index, success, fail )
+    ( key, value['SUCCESS'], value['FAIL'] )
     for key, value in o.items()
-    if ( index := key )
-    if ( success := value['SUCCESS'] )
-    if ( fail := value['FAIL'] )
   ]
+  print('raw data (consecutive failure count, successes at x, fails at x)')
   print(l)
 
   import matplotlib.pyplot as plt
-  import numpy as np
 
   x = [
-    u
+    v[0]
     for v in l
-    if ( u := v[0] )
+    if ( v[1] or v[2] )
   ]
 
   y = [
-    u
+    v[1]
     for v in l
-    if ( u := v[1] / ( v[1] + v[2] ) )
+    if ( v[1] or v[2] )
   ]
 
+  z = [
+    v[2]
+    for v in l
+    if ( v[1] or v[2] )
+  ]
+
+  p = [
+    y[i] / ( y[i] + z[i] )
+    for i in range(len(z))
+  ]
+
+  print('successes', sum(y))
+  print('fails', sum(z))
+  print('attempts', sum(y) + sum(z))
+
   plt.style.use('dark_background')
-  plt.scatter(x, y)
+  _, ax = plt.subplots(2,3)
+  ax[0, 0].set_xlabel('number of consecutive failures')
+  ax[0, 0].set_ylabel('success')
+  ax[0, 0].scatter(x, y)
+  ax[0, 1].set_xlabel('number of consecutive failures')
+  ax[0, 1].set_ylabel('fail')
+  ax[0, 1].scatter(x, z)
+  ax[0, 2].set_xlabel('number of consecutive failures')
+  ax[0, 2].set_ylabel('P(X=x)')
+  ax[0, 2].scatter(x, p)
+  ax[1, 0].set_xlabel('number of consecutive failures')
+  ax[1, 0].set_ylabel('P(X>=x)')
+  ax[1, 0].scatter(x, [sum(p[index:]) for index in range(len(x))])
+  ax[1, 1].set_xlabel('number of consecutive failures')
+  ax[1, 1].set_ylabel('P(X<=x)')
+  ax[1, 1].scatter(x, [sum(p[:index+1]) for index in range(len(x))])
+  ax[1, 2].set_xlabel('number of consecutive failures')
+  ax[1, 2].set_ylabel('accumulated successes / accumulated failures')
+  ax[1, 2].scatter(x, [sum(y[:index+1]) / ( sum(y[:index+1]) + sum(z[:index+1])) for index in range(len(x))])
+
   plt.show()
