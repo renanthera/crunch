@@ -13,12 +13,11 @@ def fight_params_update( self ):
       ]
     ] )
 
-  # players = [
-  #   f"'{player}'"
-  #   for player in wcl.getPlayerNameWith( self.params, entry_match_fn( 125020 ) )
-  # ]
-  # player_names = ', '.join( players )
-  player_names = 'Pepeg'
+  players = [
+    f"'{player}'"
+    for player in wcl.getPlayerNameWith( self.params, entry_match_fn( 125020 ) )
+  ]
+  player_names = ', '.join( players )
   clause_0 = f"(source.name in ({player_names}))"
 
   clause_2_ids = [ 1, 451839 ]
@@ -66,14 +65,10 @@ def probability_at_count( report_codes ):
     report_codes,
     params={
       'limit': 25000,
-      'filterExpression': "ability.id in (1, 451839) and source.name = 'Pepeg'"
-      # 'filterExpression': "type='combatantinfo'"
+      # 'filterExpression': "ability.id in (1, 451839) and source.name = 'Pepeg'"
+      'filterExpression': "type='combatantinfo'"
     },
     callbacks=[
-      {
-        'any': True,
-        'callback': lambda _, e: print(e)
-      },
       {
         'type': 'damage',
         'abilityGameID': [ 1, 451839 ],
@@ -90,11 +85,8 @@ def probability_at_count( report_codes ):
       },
       'info': {}
     },
-    # fight_params_update=fight_params_update
+    fight_params_update=fight_params_update
   )
-
-  import json
-  # print(json.dumps( t.data, indent=2))
 
   o = {}
   for fight in t.data:
@@ -108,41 +100,58 @@ def probability_at_count( report_codes ):
         #   print( player )
         #   print( index )
 
-  print(json.dumps(o, indent=2))
   l = [
-    ( index, success, fail )
+    ( key, value['SUCCESS'], value['FAIL'] )
     for key, value in o.items()
-    if ( index := key )
-    if ( success := value['SUCCESS'] )
-    if ( fail := value['FAIL'] )
   ]
-  print(l)
-
-  import matplotlib.pyplot as plt
-  import numpy as np
 
   x = [
-    u
+    v[0]
     for v in l
-    if ( u := v[0] )
+    if ( v[1] or v[2] )
   ]
 
   y = [
-    u
+    v[1]
     for v in l
-    if ( u := v[1] / ( v[1] + v[2] ) )
+    if ( v[1] or v[2] )
   ]
 
+  z = [
+    v[2]
+    for v in l
+    if ( v[1] or v[2] )
+  ]
+
+  p = [
+    y[i] / ( y[i] + z[i] )
+    for i in range(len(z))
+  ]
+
+  print('successes', sum(y))
+  print('fails', sum(z))
+  print('attempts', sum(y) + sum(z))
+
+  import matplotlib.pyplot as plt
   plt.style.use('dark_background')
-  plt.scatter(x, y)
+  _, ax = plt.subplots(2,3)
+  ax[0, 0].set_xlabel('number of consecutive failures')
+  ax[0, 0].set_ylabel('success')
+  ax[0, 0].scatter(x, y)
+  ax[0, 1].set_xlabel('number of consecutive failures')
+  ax[0, 1].set_ylabel('fail')
+  ax[0, 1].scatter(x, z)
+  ax[0, 2].set_xlabel('number of consecutive failures')
+  ax[0, 2].set_ylabel('P(X=x)')
+  ax[0, 2].scatter(x, p)
+  ax[1, 0].set_xlabel('number of consecutive failures')
+  ax[1, 0].set_ylabel('P(X>=x)')
+  ax[1, 0].scatter(x, [sum(p[index:]) for index in range(len(x))])
+  ax[1, 1].set_xlabel('number of consecutive failures')
+  ax[1, 1].set_ylabel('P(X<=x)')
+  ax[1, 1].scatter(x, [sum(p[:index+1]) for index in range(len(x))])
+  ax[1, 2].set_xlabel('number of consecutive failures')
+  ax[1, 2].set_ylabel('accumulated successes / accumulated failures')
+  ax[1, 2].scatter(x, [sum(y[:index+1]) / ( sum(y[:index+1]) + sum(z[:index+1])) for index in range(len(x))])
+
   plt.show()
-  # m = max( max( [
-  #   [
-  #     index[ 'index' ] if index[ 'failed' ] > 0 or index[ 'successful' ] > 0 else 0
-  #     for _, value in fight[ 'event_data' ][ 'info' ].items()
-  #     for index in value[ 'data' ]
-  #   ]
-  #   for fight in t.data
-  # ] ) )
-  # print('\n\n')
-  # print(m)
