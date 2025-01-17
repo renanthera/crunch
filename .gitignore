@@ -16,3 +16,8 @@ token.tk
 
 # cache
 cache
+
+
+# Added by cargo
+
+/target
