@@ -1,3 +1,6 @@
+mod request;
+mod token;
+
 #[cynic::schema("warcraftlogs")]
 mod schema {}
 
@@ -12,6 +15,38 @@ pub struct RateLimitData {
     pub limit_per_hour: i32,
     pub points_reset_in: i32,
     pub points_spent_this_hour: f64,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct MyQueryVariables<'a> {
+    pub code: Option<&'a str>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Query", variables = "MyQueryVariables")]
+pub struct MyQuery {
+    pub report_data: Option<ReportData>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(variables = "MyQueryVariables")]
+pub struct ReportData {
+    #[arguments(code: $code)]
+    pub report: Option<Report>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Report {
+    pub end_time: f64,
+    pub start_time: f64,
+    pub fights: Option<Vec<Option<ReportFight>>>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct ReportFight {
+    pub end_time: f64,
+    pub id: i32,
+    pub start_time: f64,
 }
 
 #[cfg(test)]
@@ -29,28 +64,16 @@ mod tests {
 }
 
 fn main() {
-    println!("Hello, world!");
-
-    match run_query("https://www.warcraftlogs.com/api/v2/client")
-        .data {
-            Some(RequestPoints { rate_limit_data: Some(rate_limit_data)}) => {
-                println!("{:?}", rate_limit_data.limit_per_hour);
-            }
-            _ => {
-                println!("none");
-            }
-        };
-}
-
-fn run_query(url: &str) -> cynic::GraphQlResponse<RequestPoints> {
-    use cynic::{http::ReqwestBlockingExt, QueryBuilder};
-
-    let query = RequestPoints::build(());
-    let token = "";
-
-    reqwest::blocking::Client::new()
-        .post(url)
-        .header("Authorization", format!("Bearer {}", token))
-        .run_graphql(query)
+    println!(
+        "{:?}",
+        request::run_query_h::<RequestPoints>().data.unwrap()
+    );
+    println!(
+        "{:?}",
+        request::run_query_g::<MyQuery, MyQueryVariables<'_>>(MyQueryVariables {
+            code: Some("d2yTQgjCaWmnYhw8")
+        })
+        .data
         .unwrap()
+    );
 }

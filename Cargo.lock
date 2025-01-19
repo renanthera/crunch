@@ -1050,6 +1050,8 @@ dependencies = [
  "cynic-codegen",
  "insta",
  "reqwest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 cynic = { version = "3", features = ["http-reqwest-blocking"] }
 reqwest = "=0.12.12"
+serde ="1"
+serde_json = "1"
 
 [build-dependencies]
 cynic-codegen = "3"
