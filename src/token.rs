@@ -19,7 +19,10 @@ impl Token {
         let mut file = File::open(TOKENPATH)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-        match serde_json::from_str::<Token>(&contents) {
+
+        // I don't know how to do this error type in a sane way
+        // enum using thiserror, serde_json provides an anyhow::Result?
+        match serde_json::from_str::<Self>(&contents) {
             Ok(json) => Ok(json.fmt()),
             Err(_) => todo!(),
         }

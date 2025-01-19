@@ -70,7 +70,7 @@ fn main() {
     );
     println!(
         "{:?}",
-        request::run_query_g::<MyQuery, MyQueryVariables<'_>>(MyQueryVariables {
+        request::run_query_g::<MyQuery, _>(MyQueryVariables {
             code: Some("d2yTQgjCaWmnYhw8")
         })
         .data

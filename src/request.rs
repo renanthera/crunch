@@ -10,7 +10,6 @@ where
     use cynic::http::ReqwestBlockingExt;
 
     let query = T::build(params);
-
     reqwest::blocking::Client::new()
         .post(ENDPOINT)
         .header("Authorization", token::Token::load().unwrap())
