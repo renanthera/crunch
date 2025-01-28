@@ -2,12 +2,14 @@ use chrono::prelude::*;
 use rusqlite::{Connection, OpenFlags};
 use thiserror::Error;
 
-// TODO: reorganize to make it a bit more consistent
-// TODO: are both traits good to have?
 // TODO: close db connection
-// TODO: compress response - does this make ToSql for <T> better? can serialization be done generically by serde -> gzip it?
+// TODO: compress response
 // TODO: increment hits, update hit timestamp
 // TODO: make types less horrible, properly use `use`
+
+// TODO: compare size between:
+// - compressed json from serde_json
+// - compressed bytes from postcard
 
 const DBPATH: &str = "cache.db";
 const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, response BLOB, hits INT, time_first_request CHAR(50), time_last_request CHAR(50))";
@@ -36,40 +38,72 @@ fn init_db() -> Result<Connection, rusqlite::Error> {
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum Error {
     #[error(transparent)]
     Rusqlite(#[from] rusqlite::Error),
+    #[error(transparent)]
+    Postcard(#[from] postcard::Error),
     #[error("No response found for query ({0}).")]
     NoResponse(String),
 }
 
 #[derive(Debug)]
 pub struct Query {
-    id: i32,
-    query: String,
-    hits: i32,
-    time_first_request: DateTime<Utc>,
-    time_last_request: DateTime<Utc>,
+    pub id: i32,
+    pub query: String,
+    pub hits: i32,
+    pub time_first_request: DateTime<Utc>,
+    pub time_last_request: DateTime<Utc>,
 }
 
 #[derive(Debug)]
 pub struct Response<T>
 where
-    T: rusqlite::types::FromSql + rusqlite::types::ToSql,
+    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
 {
+    pub id: i32,
+    pub response: T,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct InternalResponse {
     id: i32,
-    response: T,
+    response: Vec<u8>,
 }
 
-pub trait SQL: Sized {
-    fn select_query() -> String;
+pub trait Cache
+where
+    Self: Sized,
+{
+    fn select_query() -> &'static str;
+
+    fn insert_query() -> &'static str;
+
     fn from_sql(row: &rusqlite::Row<'_>) -> Result<Self, rusqlite::Error>;
+
+    fn insert(&self, connection: &Connection) -> Result<usize, Error>;
+
+    fn select(connection: &Connection, query: &str) -> Result<Self, Error> {
+        let mut statement = connection.prepare(Self::select_query())?;
+        let responses = statement.query_map((query,), Self::from_sql)?;
+        match responses.last() {
+            Some(Ok(last)) => Ok(last),
+            Some(Err(err)) => Err(Error::Rusqlite { 0: err }),
+            None => Err(Error::NoResponse {
+                0: query.to_string(),
+            }),
+        }
+    }
 }
 
-impl SQL for Query {
-    fn select_query() -> String {
-        SELECT_QUERY.to_string()
+impl Cache for Query {
+    fn select_query() -> &'static str {
+        SELECT_QUERY
+    }
+
+    fn insert_query() -> &'static str {
+        INSERT_QUERY
     }
 
     fn from_sql(row: &rusqlite::Row<'_>) -> Result<Query, rusqlite::Error> {
@@ -81,88 +115,67 @@ impl SQL for Query {
             time_last_request: row.get(5)?,
         })
     }
-}
 
-impl<T> SQL for Response<T>
-where
-    T: rusqlite::types::FromSql + rusqlite::types::ToSql,
-{
-    fn select_query() -> String {
-        SELECT_RESPONSE.to_string()
-    }
-
-    fn from_sql(row: &rusqlite::Row<'_>) -> Result<Response<T>, rusqlite::Error> {
-        Ok(Response::<T> {
-            id: row.get(0)?,
-            response: row.get(1)?,
-        })
-    }
-}
-
-pub trait Cache
-where
-    Self: Sized + SQL,
-{
-    fn select(connection: &Connection, query: &str) -> Result<Self, Error> {
-        let mut statement = connection.prepare(&Self::select_query())?;
-        let responses = statement.query_map((query,), <Self as SQL>::from_sql)?;
-        match responses.last() {
-            Some(Ok(last)) => Ok(last),
-            Some(Err(err)) => Err(Error::Rusqlite { 0: err }),
-            None => Err(Error::NoResponse {
-                0: query.to_string(),
-            }),
-        }
-    }
-
-    fn insert(&self, connection: &Connection) -> Result<usize, Error>;
-}
-
-impl Cache for Query {
     fn insert(&self, connection: &Connection) -> Result<usize, Error> {
-        let mut statement = connection.prepare(INSERT_QUERY)?;
+        let mut statement = connection.prepare(Self::insert_query())?;
         Ok(statement.execute((&self.query, 0, Utc::now(), Utc::now()))?)
     }
 }
 
-impl<T> Cache for Response<T>
-where
-    T: rusqlite::types::FromSql + rusqlite::types::ToSql,
-{
+impl Cache for InternalResponse {
+    fn select_query() -> &'static str {
+        SELECT_RESPONSE
+    }
+
+    fn insert_query() -> &'static str {
+        INSERT_RESPONSE
+    }
+
+    fn from_sql(row: &rusqlite::Row<'_>) -> Result<InternalResponse, rusqlite::Error> {
+        Ok(InternalResponse {
+            id: row.get(0)?,
+            response: row.get(1)?,
+        })
+    }
+
     fn insert(&self, connection: &Connection) -> Result<usize, Error> {
-        let mut statement = connection.prepare(INSERT_RESPONSE)?;
+        let mut statement = connection.prepare(Self::insert_query())?;
         Ok(statement.execute((&self.id, &self.response))?)
     }
 }
 
-pub fn cache<T>(query: String, response: T) -> Result<(), Error>
+pub fn insert<T>(query: String, response: &T) -> Result<(), Error>
 where
-    T: rusqlite::types::FromSql + rusqlite::types::ToSql,
+    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
 {
     let connection = init_db()?;
-    let entry = Query {
+    let q = Query {
         id: 0,
         query: query.clone(),
         hits: 0,
         time_first_request: Utc::now(),
         time_last_request: Utc::now(),
     };
-    entry.insert(&connection)?;
-    let inserted_query = Query::select(&connection, &query)?;
-    let response = Response::<T> {
-        id: inserted_query.id,
-        response,
+    q.insert(&connection)?;
+    let id = Query::select(&connection, &query)?.id;
+    let response = InternalResponse {
+        id,
+        response: postcard::to_stdvec(&response)?,
     };
     response.insert(&connection)?;
     Ok(())
 }
 
-pub fn query<T>(query: String) -> Result<(Query, Response<T>), Error>
+pub fn select<T>(query: String) -> Result<(Query, Response<T>), Error>
 where
-    T: rusqlite::types::FromSql + rusqlite::types::ToSql,
+    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
 {
     let connection = init_db()?;
-    let query = <Query as Cache>::select(&connection, &query)?;
-    let response = <Response<T> as Cache>::select(&connection, &(query.id.to_string()))?;
+    let query = Query::select(&connection, &query)?;
+    let ir = InternalResponse::select(&connection, &(query.id.to_string()))?;
+    let response = Response::<T> {
+        id: ir.id,
+        response: postcard::from_bytes(&ir.response).unwrap(),
+    };
     Ok((query, response))
 }

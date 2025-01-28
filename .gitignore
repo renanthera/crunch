@@ -16,7 +16,7 @@ token.tk
 
 # cache
 cache
-
+cache.db
 
 # Added by cargo
 

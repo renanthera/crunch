@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-// use crate::cache;
 
 #[cynic::schema("warcraftlogs")]
 mod schema {}
