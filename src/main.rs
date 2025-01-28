@@ -1,79 +1,71 @@
+mod cache;
+mod query;
 mod request;
 mod token;
 
-#[cynic::schema("warcraftlogs")]
-mod schema {}
+use thiserror::Error;
 
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query")]
-pub struct RequestPoints {
-    pub rate_limit_data: Option<RateLimitData>,
+#[derive(Debug, serde::Serialize)]
+struct Temp {
+    body: String,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
-pub struct RateLimitData {
-    pub limit_per_hour: i32,
-    pub points_reset_in: i32,
-    pub points_spent_this_hour: f64,
-}
+// #[derive(Error, Debug)]
+// pub enum ParseTempError {
+//     #[error(transparent)]
+//     Rusqlite(#[from] rusqlite::Error),
+//     #[error("asdf")]
+//     NoParse,
+// }
 
-#[derive(cynic::QueryVariables, Debug)]
-pub struct MyQueryVariables<'a> {
-    pub code: Option<&'a str>,
-}
+// // this is kinda misery x3
+// impl rusqlite::types::ToSql for Temp {
+//     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+//         Ok(self.body.clone().into())
+//     }
+// }
 
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "MyQueryVariables")]
-pub struct MyQuery {
-    pub report_data: Option<ReportData>,
-}
+// impl rusqlite::types::FromSql for Temp {
+//     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+//         value
+//             .as_str()?
+//             .parse()
+//             .map_err(|e| rusqlite::types::FromSqlError::Other(Box::new(e)))
+//     }
+// }
 
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(variables = "MyQueryVariables")]
-pub struct ReportData {
-    #[arguments(code: $code)]
-    pub report: Option<Report>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct Report {
-    pub end_time: f64,
-    pub start_time: f64,
-    pub fights: Option<Vec<Option<ReportFight>>>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ReportFight {
-    pub end_time: f64,
-    pub id: i32,
-    pub start_time: f64,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn points_spent_test() {
-        use cynic::QueryBuilder;
-
-        let operation = RequestPoints::build(());
-
-        insta::assert_snapshot!(operation.query);
-    }
-}
+// impl std::str::FromStr for Temp {
+//     type Err = ParseTempError;
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         Ok(Temp {
+//             body: String::from(s),
+//         })
+//     }
+// }
 
 fn main() {
-    println!(
-        "{:?}",
-        request::run_query_h::<RequestPoints>().data.unwrap()
-    );
-    println!(
-        "{:?}",
-        request::run_query_g::<MyQuery, _>(MyQueryVariables {
-            code: Some("d2yTQgjCaWmnYhw8")
-        })
-        .data
-        .unwrap()
-    );
+    let body = Temp {
+        body: "12345asdfjkl".to_string(),
+    };
+
+    // let v = cache::cache("asdf".to_string(), body);
+    // let q = cache::query::<Temp>("asdf".to_string());
+    // println!("{:?}", v);
+    // println!("{:?}", q);
+
+    // let query = request::make_query::<query::RequestPoints, _>(());
+    // let response = request::run_query::<query::RequestPoints>();
+    // let binding = response.data.unwrap();
+    // let rv = binding.cache(serde_json::to_string(&query).unwrap());
+    // println!("{:#?}", rv);
+
+    // ptypeof(&response);
+    // ptypeof(&(response.data));
+    // let q = cache::Query::new(
+    //     serde_json::to_string(&query).unwrap(),
+    //     response.data.unwrap());
+    // println!("{:#?}", q.unwrap());
+
+    // println!("{:?}", q);
+    // println!("{}", serde_json::to_string_pretty(&q).unwrap());
 }
