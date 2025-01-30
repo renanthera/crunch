@@ -1,30 +1,29 @@
-use chrono::prelude::*;
-use rusqlite::{Connection, OpenFlags};
-use thiserror::Error;
+use crate::error::Error;
+use chrono::{DateTime, Utc};
+use rusqlite::Error as RusqliteError;
+use rusqlite::{Connection, OpenFlags, Row};
+use serde::{Deserialize, Serialize};
+use serde_json::{from_slice, to_vec};
+use std::fmt::Debug;
 
 // TODO: close db connection
 // TODO: compress response
 // TODO: increment hits, update hit timestamp
-// TODO: make types less horrible, properly use `use`
-
-// TODO: compare size between:
-// - compressed json from serde_json
-// - compressed bytes from postcard
 
 const DBPATH: &str = "cache.db";
-const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, response BLOB, hits INT, time_first_request CHAR(50), time_last_request CHAR(50))";
-const CREATE_RESPONSE_TABLE: &str = "CREATE TABLE response (id INTEGER PRIMARY KEY, response BLOB)";
+const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request CHAR(50), time_last_request CHAR(50))";
+const CREATE_RESPONSE_TABLE: &str = "CREATE TABLE response (id INTEGER PRIMARY KEY, response TEXT)";
 const INSERT_QUERY: &str = "INSERT INTO query (query, hits, time_first_request, time_last_request) VALUES (?1, ?2, ?3, ?4)";
 const INSERT_RESPONSE: &str = "INSERT INTO response (id, response) VALUES (?1, ?2)";
 const SELECT_QUERY: &str = "SELECT * FROM query WHERE query = (?1)";
 const SELECT_RESPONSE: &str = "SELECT * FROM response WHERE id = (?)";
 
-fn init_db() -> Result<Connection, rusqlite::Error> {
+fn init_db() -> Result<Connection, RusqliteError> {
     if let Ok(conn) = Connection::open_with_flags(
         DBPATH,
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     ) {
-        // check to make sure the correct tables exist
+        // TODO: check to make sure the correct tables exist, not just a db
         return Ok(conn);
     }
 
@@ -38,16 +37,7 @@ fn init_db() -> Result<Connection, rusqlite::Error> {
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
-pub enum Error {
-    #[error(transparent)]
-    Rusqlite(#[from] rusqlite::Error),
-    #[error(transparent)]
-    Postcard(#[from] postcard::Error),
-    #[error("No response found for query ({0}).")]
-    NoResponse(String),
-}
-
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Query {
     pub id: i32,
@@ -57,22 +47,23 @@ pub struct Query {
     pub time_last_request: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Response<T>
 where
-    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
+    T: Serialize + for<'a> Deserialize<'a>,
 {
     pub id: i32,
     pub response: T,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct InternalResponse {
     id: i32,
     response: Vec<u8>,
 }
 
-pub trait Cache
+trait Cache
 where
     Self: Sized,
 {
@@ -80,7 +71,7 @@ where
 
     fn insert_query() -> &'static str;
 
-    fn from_sql(row: &rusqlite::Row<'_>) -> Result<Self, rusqlite::Error>;
+    fn from_sql(row: &Row<'_>) -> Result<Self, RusqliteError>;
 
     fn insert(&self, connection: &Connection) -> Result<usize, Error>;
 
@@ -90,7 +81,7 @@ where
         match responses.last() {
             Some(Ok(last)) => Ok(last),
             Some(Err(err)) => Err(Error::Rusqlite { 0: err }),
-            None => Err(Error::NoResponse {
+            None => Err(Error::NoResponseCache {
                 0: query.to_string(),
             }),
         }
@@ -106,7 +97,7 @@ impl Cache for Query {
         INSERT_QUERY
     }
 
-    fn from_sql(row: &rusqlite::Row<'_>) -> Result<Query, rusqlite::Error> {
+    fn from_sql(row: &Row<'_>) -> Result<Query, RusqliteError> {
         Ok(Query {
             id: row.get(0)?,
             query: row.get(1)?,
@@ -131,7 +122,7 @@ impl Cache for InternalResponse {
         INSERT_RESPONSE
     }
 
-    fn from_sql(row: &rusqlite::Row<'_>) -> Result<InternalResponse, rusqlite::Error> {
+    fn from_sql(row: &Row<'_>) -> Result<InternalResponse, RusqliteError> {
         Ok(InternalResponse {
             id: row.get(0)?,
             response: row.get(1)?,
@@ -144,9 +135,9 @@ impl Cache for InternalResponse {
     }
 }
 
-pub fn insert<T>(query: String, response: &T) -> Result<(), Error>
+pub fn insert<T>(query: &String, response: &T) -> Result<(), Error>
 where
-    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
+    T: Serialize + for<'a> Deserialize<'a>,
 {
     let connection = init_db()?;
     let q = Query {
@@ -160,22 +151,22 @@ where
     let id = Query::select(&connection, &query)?.id;
     let response = InternalResponse {
         id,
-        response: postcard::to_stdvec(&response)?,
+        response: to_vec(&response)?,
     };
     response.insert(&connection)?;
     Ok(())
 }
 
-pub fn select<T>(query: String) -> Result<(Query, Response<T>), Error>
+pub fn select<T>(query: &String) -> Result<(Query, Response<T>), Error>
 where
-    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
+    T: Debug + Serialize + for<'a> Deserialize<'a>,
 {
     let connection = init_db()?;
     let query = Query::select(&connection, &query)?;
     let ir = InternalResponse::select(&connection, &(query.id.to_string()))?;
     let response = Response::<T> {
         id: ir.id,
-        response: postcard::from_bytes(&ir.response).unwrap(),
+        response: from_slice(&ir.response)?,
     };
     Ok((query, response))
 }

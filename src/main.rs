@@ -1,29 +1,13 @@
 mod cache;
+mod error;
 mod query;
 mod request;
 mod token;
 
-// #[derive(Debug, serde::Serialize, serde::Deserialize)]
-// struct Temp {
-//     body: String,
-// }
+// TODO: split into subcrates
+// - request, query, analysis
 
 fn main() {
-    // let body = Temp {
-    //     body: "12345asdfjkl".to_string(),
-    // };
-
-    // // let i = cache::insert("asdf".to_string(), &body).unwrap();
-    // let s = cache::select::<Temp>("asdf".to_string()).unwrap();
-
-    // match cache::select::<Temp>("asdf".to_string()) {
-    //     Ok(ok) => println!("{:?}", ok),
-    //     Err(ref err) => match err {
-    //         cache::Error::NoResponse(..) => todo!(),
-    //         _ => panic!("{}", err),
-    //     }
-    // }
-
-    // // println!("{:?}", i);
-    // println!("{:?}", s);
+    let v = request::run_query!(query::RequestPoints);
+    println!("{:?}", v);
 }

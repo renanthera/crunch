@@ -3,15 +3,21 @@
 #[cynic::schema("warcraftlogs")]
 mod schema {}
 
+pub trait DoCache {}
+
 #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
 #[cynic(graphql_type = "Query")]
+#[serde(rename_all = "camelCase")]
 pub struct RequestPoints {
     pub rate_limit_data: Option<RateLimitData>,
 }
 
+impl DoCache for RequestPoints {}
+
 // impl cache::Cache for RequestPoints {}
 
 #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RateLimitData {
     pub limit_per_hour: i32,
     pub points_reset_in: i32,
