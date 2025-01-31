@@ -30,12 +30,41 @@ where
         .ok_or(Error::NoResponseQuery)
 }
 
-// TODO: determine if $t implements query::DoCache to control whether or not
-// response gets cached
+// pub trait Cache {
+//     fn run_query<U>(params: U) -> Result<Self, Error>
+//     where
+//         U: cynic::QueryVariables + serde::Serialize,
+//         Self: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
+//     {
+//         let query = make_query(params);
+//         let query_string = serde_json::to_string(&query)?;
+//         let cached_result = cache::select::<Self>(&query_string);
+//         match cached_result {
+//             Ok(response) => Ok(response.1.response),
+//             Err(Error::NoResponseCache(..)) => {
+//                 let request = make_request(query)?;
+//                 cache::insert(&query_string, &request)?;
+//                 Ok(request)
+//             }
+//             Err(err) => Err(err),
+//         }
+//     }
+// }
+
+// pub trait Cacheless {
+//     fn run_query<U>(params: U) -> Result<Self, Error>
+//     where
+//         U: cynic::QueryVariables + serde::Serialize,
+//         Self: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
+//     {
+//         make_request(make_query(params))
+//     }
+// }
+
 pub fn run_query_variables<T, U>(params: U) -> Result<T, Error>
 where
     U: cynic::QueryVariables + serde::Serialize,
-    T: crate::query::DoCache + std::fmt::Debug + cynic::QueryBuilder<U> + serde::Serialize + for<'de> serde::Deserialize<'de> + 'static,
+    T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
 {
     let query = make_query(params);
     let query_string = serde_json::to_string(&query)?;
@@ -51,17 +80,7 @@ where
     }
 }
 
-// pub fn run_query_variables<T, U>(params: U) -> Result<T, Error>
-// where
-//     U: cynic::QueryVariables + serde::Serialize,
-//     T: std::fmt::Debug + cynic::QueryBuilder<U> + serde::Serialize + for<'de> serde::Deserialize<'de> + 'static,
-// {
-//     let query = make_query(params);
-//     let query_string = serde_json::to_string(&query)?;
-//     make_request(query)?
-// }
-
-
+#[macro_export]
 macro_rules! run_query {
     ( $t:ty, $x:expr ) => {
         $crate::request::run_query_variables::<$t>(x)
@@ -70,5 +89,3 @@ macro_rules! run_query {
         $crate::request::run_query_variables::<$t, ()>(())
     };
 }
-
-pub(crate) use run_query;

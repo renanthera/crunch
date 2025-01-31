@@ -1,13 +1,6 @@
-mod cache;
-mod error;
-mod query;
-mod request;
-mod token;
-
-// TODO: split into subcrates
-// - request, query, analysis
+use warcraftlogs::query;
 
 fn main() {
-    let v = request::run_query!(query::RequestPoints);
+    let v = warcraftlogs::run_query!(query::RequestPoints);
     println!("{:?}", v);
 }

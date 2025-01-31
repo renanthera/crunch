@@ -1,9 +1,17 @@
 #![allow(dead_code)]
 
+// use crate::cache::{Query, Response};
+use crate::error::Error;
+
 #[cynic::schema("warcraftlogs")]
 mod schema {}
 
-pub trait DoCache {}
+pub trait Cache {
+    fn run_query<U>(params: U) -> Result<Self, Error>
+    where
+        U: cynic::QueryVariables + serde::Serialize,
+        Self: serde::Serialize + for<'a> serde::Deserialize<'a>;
+}
 
 #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
 #[cynic(graphql_type = "Query")]
@@ -12,10 +20,6 @@ pub struct RequestPoints {
     pub rate_limit_data: Option<RateLimitData>,
 }
 
-impl DoCache for RequestPoints {}
-
-// impl cache::Cache for RequestPoints {}
-
 #[derive(cynic::QueryFragment, Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RateLimitData {
@@ -23,7 +27,6 @@ pub struct RateLimitData {
     pub points_reset_in: i32,
     pub points_spent_this_hour: f64,
 }
-// impl cache::Cache for RateLimitData {}
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct ReportFightsVariables<'a> {

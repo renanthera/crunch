@@ -4,7 +4,6 @@ use rusqlite::Error as RusqliteError;
 use rusqlite::{Connection, OpenFlags, Row};
 use serde::{Deserialize, Serialize};
 use serde_json::{from_slice, to_vec};
-use std::fmt::Debug;
 
 // TODO: close db connection
 // TODO: compress response
@@ -63,7 +62,7 @@ struct InternalResponse {
     response: Vec<u8>,
 }
 
-trait Cache
+trait SQL
 where
     Self: Sized,
 {
@@ -88,7 +87,7 @@ where
     }
 }
 
-impl Cache for Query {
+impl SQL for Query {
     fn select_query() -> &'static str {
         SELECT_QUERY
     }
@@ -113,7 +112,7 @@ impl Cache for Query {
     }
 }
 
-impl Cache for InternalResponse {
+impl SQL for InternalResponse {
     fn select_query() -> &'static str {
         SELECT_RESPONSE
     }
@@ -159,7 +158,7 @@ where
 
 pub fn select<T>(query: &String) -> Result<(Query, Response<T>), Error>
 where
-    T: Debug + Serialize + for<'a> Deserialize<'a>,
+    T: Serialize + for<'a> Deserialize<'a>,
 {
     let connection = init_db()?;
     let query = Query::select(&connection, &query)?;
