@@ -1,5 +1,5 @@
 use crate::error::Error;
-use chrono::{DateTime, Utc};
+// use chrono::{DateTime, Utc};
 use rusqlite::Error as RusqliteError;
 use rusqlite::{Connection, OpenFlags, Row};
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,7 @@ use serde_json::{from_slice, to_vec};
 // TODO: close db connection
 // TODO: compress response
 // TODO: increment hits, update hit timestamp
+// TODO: fix the other fields :(
 
 const DBPATH: &str = "cache.db";
 // const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request TEXT, time_last_request TEXT)";

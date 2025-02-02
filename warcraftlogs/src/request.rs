@@ -5,8 +5,7 @@ use cynic::http::ReqwestBlockingExt;
 
 const ENDPOINT: &str = "https://www.warcraftlogs.com/api/v2/client";
 
-// TODO: replace pub interface with a macro for variadic support
-// TODO: how do you solve pagination?
+// TODO: how do you solve pagination? <- attribute macro :)
 
 fn make_query<T, U>(params: U) -> cynic::Operation<T, U>
 where
@@ -45,10 +44,7 @@ where
             cache::insert(&query_string, &request)?;
             Ok(request)
         }
-        Err(err) => {
-            println!("q, {}", err);
-            Err(err)
-        }
+        Err(err) => Err(err)
     }
 }
 
