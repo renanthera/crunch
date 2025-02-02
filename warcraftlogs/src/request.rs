@@ -6,7 +6,6 @@ use cynic::http::ReqwestBlockingExt;
 const ENDPOINT: &str = "https://www.warcraftlogs.com/api/v2/client";
 
 // TODO: replace pub interface with a macro for variadic support
-// TODO: query caching
 // TODO: how do you solve pagination?
 
 fn make_query<T, U>(params: U) -> cynic::Operation<T, U>
@@ -30,38 +29,7 @@ where
         .ok_or(Error::NoResponseQuery)
 }
 
-// pub trait Cache {
-//     fn run_query<U>(params: U) -> Result<Self, Error>
-//     where
-//         U: cynic::QueryVariables + serde::Serialize,
-//         Self: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
-//     {
-//         let query = make_query(params);
-//         let query_string = serde_json::to_string(&query)?;
-//         let cached_result = cache::select::<Self>(&query_string);
-//         match cached_result {
-//             Ok(response) => Ok(response.1.response),
-//             Err(Error::NoResponseCache(..)) => {
-//                 let request = make_request(query)?;
-//                 cache::insert(&query_string, &request)?;
-//                 Ok(request)
-//             }
-//             Err(err) => Err(err),
-//         }
-//     }
-// }
-
-// pub trait Cacheless {
-//     fn run_query<U>(params: U) -> Result<Self, Error>
-//     where
-//         U: cynic::QueryVariables + serde::Serialize,
-//         Self: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
-//     {
-//         make_request(make_query(params))
-//     }
-// }
-
-pub fn run_query_variables<T, U>(params: U) -> Result<T, Error>
+pub fn run_query_cached<T, U>(params: U) -> Result<T, Error>
 where
     U: cynic::QueryVariables + serde::Serialize,
     T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
@@ -72,20 +40,35 @@ where
     match cached_result {
         Ok(response) => Ok(response.1.response),
         Err(Error::NoResponseCache(..)) => {
+            println!("Cache miss for query: {}", query_string);
             let request = make_request(query)?;
             cache::insert(&query_string, &request)?;
             Ok(request)
         }
-        Err(err) => Err(err),
+        Err(err) => {
+            println!("q, {}", err);
+            Err(err)
+        }
     }
 }
 
-#[macro_export]
-macro_rules! run_query {
-    ( $t:ty, $x:expr ) => {
-        $crate::request::run_query_variables::<$t>(x)
-    };
-    ( $t:ty ) => {
-        $crate::request::run_query_variables::<$t, ()>(())
-    };
+pub fn run_query_uncached<T, U>(params: U) -> Result<T, Error>
+where
+    U: cynic::QueryVariables + serde::Serialize,
+    T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
+{
+    make_request(make_query(params))
+}
+
+// implemented by proc macro cache_attribute::cache
+#[allow(dead_code)]
+pub trait Cache {
+    fn run_query<U>(params: U) -> Result<Self, Error>
+    where
+        U: cynic::QueryVariables + serde::Serialize,
+        Self: Sized
+            + cynic::QueryBuilder<U>
+            + serde::Serialize
+            + for<'a> serde::Deserialize<'a>
+            + 'static;
 }

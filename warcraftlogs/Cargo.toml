@@ -13,6 +13,7 @@ flate2 = "1"
 rusqlite = { version = "0.32", features = ["bundled", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
+cache_attribute = { path = "../cache_attribute" }
 
 [build-dependencies]
 cynic-codegen = "3"

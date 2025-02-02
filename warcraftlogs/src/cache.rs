@@ -10,12 +10,15 @@ use serde_json::{from_slice, to_vec};
 // TODO: increment hits, update hit timestamp
 
 const DBPATH: &str = "cache.db";
-const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request CHAR(50), time_last_request CHAR(50))";
+// const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request TEXT, time_last_request TEXT)";
 const CREATE_RESPONSE_TABLE: &str = "CREATE TABLE response (id INTEGER PRIMARY KEY, response TEXT)";
-const INSERT_QUERY: &str = "INSERT INTO query (query, hits, time_first_request, time_last_request) VALUES (?1, ?2, ?3, ?4)";
+// const INSERT_QUERY: &str = "INSERT INTO query (query, hits, time_first_request, time_last_request) VALUES (?1, ?2, ?3, ?4)";
 const INSERT_RESPONSE: &str = "INSERT INTO response (id, response) VALUES (?1, ?2)";
 const SELECT_QUERY: &str = "SELECT * FROM query WHERE query = (?1)";
 const SELECT_RESPONSE: &str = "SELECT * FROM response WHERE id = (?)";
+
+const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT)";
+const INSERT_QUERY: &str = "INSERT INTO query (query) VALUES (?1)";
 
 fn init_db() -> Result<Connection, RusqliteError> {
     if let Ok(conn) = Connection::open_with_flags(
@@ -41,9 +44,9 @@ fn init_db() -> Result<Connection, RusqliteError> {
 pub struct Query {
     pub id: i32,
     pub query: String,
-    pub hits: i32,
-    pub time_first_request: DateTime<Utc>,
-    pub time_last_request: DateTime<Utc>,
+    // pub hits: i32,
+    // pub time_first_request: String,
+    // pub time_last_request: String,
 }
 
 #[allow(dead_code)]
@@ -100,15 +103,16 @@ impl SQL for Query {
         Ok(Query {
             id: row.get(0)?,
             query: row.get(1)?,
-            hits: row.get(3)?,
-            time_first_request: row.get(4)?,
-            time_last_request: row.get(5)?,
+            // hits: row.get(3)?,
+            // time_first_request: row.get(4)?,
+            // time_last_request: row.get(5)?,
         })
     }
 
     fn insert(&self, connection: &Connection) -> Result<usize, Error> {
         let mut statement = connection.prepare(Self::insert_query())?;
-        Ok(statement.execute((&self.query, 0, Utc::now(), Utc::now()))?)
+        // Ok(statement.execute((&self.query, 0, Utc::now().to_string(), Utc::now().to_string()))?)
+        Ok(statement.execute((&self.query,))?)
     }
 }
 
@@ -130,6 +134,7 @@ impl SQL for InternalResponse {
 
     fn insert(&self, connection: &Connection) -> Result<usize, Error> {
         let mut statement = connection.prepare(Self::insert_query())?;
+        println!("{:?}", statement);
         Ok(statement.execute((&self.id, &self.response))?)
     }
 }
@@ -142,9 +147,9 @@ where
     let q = Query {
         id: 0,
         query: query.clone(),
-        hits: 0,
-        time_first_request: Utc::now(),
-        time_last_request: Utc::now(),
+        // hits: 0,
+        // time_first_request: Utc::now().to_string(),
+        // time_last_request: Utc::now().to_string(),
     };
     q.insert(&connection)?;
     let id = Query::select(&connection, &query)?.id;
