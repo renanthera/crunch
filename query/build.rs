@@ -3,5 +3,5 @@ fn main() {
         .from_sdl_file("schemas/warcraftlogs.schema")
         .unwrap()
         .as_default()
-        .unwrap();
+        .expect("failed to find GraphQL schema");
 }

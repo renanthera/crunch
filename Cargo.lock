@@ -36,6 +36,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
+name = "analysis"
+version = "0.1.0"
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -147,6 +151,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -175,6 +183,7 @@ dependencies = [
 name = "crunch"
 version = "0.1.0"
 dependencies = [
+ "query",
  "warcraftlogs",
 ]
 
@@ -1073,6 +1082,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "query"
+version = "0.1.0"
+dependencies = [
+ "cache_attribute",
+ "cynic",
+ "cynic-codegen",
+ "serde",
+ "serde_json",
+ "warcraftlogs",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1671,10 +1692,8 @@ dependencies = [
 name = "warcraftlogs"
 version = "0.1.0"
 dependencies = [
- "cache_attribute",
  "chrono",
  "cynic",
- "cynic-codegen",
  "flate2",
  "reqwest",
  "rusqlite",

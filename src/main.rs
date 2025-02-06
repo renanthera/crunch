@@ -1,12 +1,25 @@
-use warcraftlogs::query::ReportFightsVariables;
-use warcraftlogs::request::Cache;
+use std::time::Instant;
+use query::*;
+
+fn wrap(f: fn() -> ()) {
+    let a = Instant::now();
+    f();
+    let b = Instant::now();
+    println!("{}", b.duration_since(a).as_nanos());
+}
 
 fn main() {
-    // let v = warcraftlogs::query::RequestPoints::run_query(());
-    // println!("{:?}", v);
+    let v = || {
+        let a = RequestPoints::run_query(());
+        println!("{:?}", a);
+    };
+    wrap(v);
 
-    let w = warcraftlogs::query::ReportFights::run_query(ReportFightsVariables {
-        code: Some("GdY1kHybjFq8WgzR"),
-    });
-    println!("{:?}", w);
+    let w = || {
+        let a = ReportFights::run_query(ReportFightsVariables {
+            code: Some("GdY1kHybjFq8WgzR"),
+        });
+        println!("{:?}", a);
+    };
+    wrap(w);
 }

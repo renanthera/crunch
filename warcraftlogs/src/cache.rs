@@ -12,6 +12,7 @@ use std::io::Write;
 // TODO: fix the other fields :(
 // TODO: increment hits, update hit timestamp
 // TODO: check to make sure the correct tables exist, not just a db
+// TODO: is postcard more effective than serde for serialization
 
 const DBPATH: &str = "cache.db";
 // const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request TEXT, time_last_request TEXT)";

@@ -5,15 +5,11 @@ edition = "2021"
 description = "cached warcraftlogs api interface library"
 
 [dependencies]
-cynic = { version = "3", features = ["http-reqwest-blocking"] }
-reqwest = "=0.12.12"
-serde ="1"
-serde_json = "1"
+cynic.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+reqwest = "0.12"
 flate2 = "1"
 rusqlite = { version = "0.32", features = ["bundled", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
-thiserror = "2"
-cache_attribute = { path = "../cache_attribute" }
-
-[build-dependencies]
-cynic-codegen = "3"

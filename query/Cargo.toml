@@ -1,0 +1,14 @@
+[package]
+name = "query"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+warcraftlogs.workspace = true
+cynic.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+cache_attribute = { path = "../cache_attribute" }
+
+[build-dependencies]
+cynic-codegen = "3"

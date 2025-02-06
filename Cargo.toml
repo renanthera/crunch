@@ -4,7 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["warcraftlogs", "cache_attribute"]
+members = ["cli", "warcraftlogs", "query", "cache_attribute", "analysis"]
 
 [dependencies]
 warcraftlogs = { path = "./warcraftlogs" }
+query = { path = "./query" }
+
+[workspace.dependencies]
+warcraftlogs = { path = "./warcraftlogs" }
+query = { path = "./query" }
+cynic = { version = "3", features = ["http-reqwest-blocking"] }
+serde = "1"
+serde_json = "1"
+thiserror = "2"

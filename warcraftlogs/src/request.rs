@@ -6,6 +6,8 @@ use cynic::http::ReqwestBlockingExt;
 const ENDPOINT: &str = "https://www.warcraftlogs.com/api/v2/client";
 
 // TODO: how do you solve pagination? <- attribute macro :)
+// TODO: better query stringification
+// TODO: auto update schema in build step
 
 fn make_query<T, U>(params: U) -> cynic::Operation<T, U>
 where
@@ -33,12 +35,13 @@ where
     U: cynic::QueryVariables + serde::Serialize,
     T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
 {
+    let params_string = serde_json::to_string(&params);
     let query = make_query(params);
-    let query_string = serde_json::to_string(&query)?;
-    match cache::select::<T>(&query_string) {
+    let query_string = query.query.clone();
+    match cache::select::<T>(&query.query) {
         Ok(response) => Ok(response.response),
         Err(Error::NoResponseCache(..)) => {
-            println!("Cache miss for query: {}", query_string);
+            println!("Cache miss for query: {} {:?}", query.query, params_string);
             let request = make_request(query)?;
             cache::insert(&query_string, &request)?;
             Ok(request)
