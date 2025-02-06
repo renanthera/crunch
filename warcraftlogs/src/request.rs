@@ -35,16 +35,15 @@ where
 {
     let query = make_query(params);
     let query_string = serde_json::to_string(&query)?;
-    let cached_result = cache::select::<T>(&query_string);
-    match cached_result {
-        Ok(response) => Ok(response.1.response),
+    match cache::select::<T>(&query_string) {
+        Ok(response) => Ok(response.response),
         Err(Error::NoResponseCache(..)) => {
             println!("Cache miss for query: {}", query_string);
             let request = make_request(query)?;
             cache::insert(&query_string, &request)?;
             Ok(request)
         }
-        Err(err) => Err(err)
+        Err(err) => Err(err),
     }
 }
 

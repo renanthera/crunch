@@ -1,14 +1,17 @@
 use crate::error::Error;
 // use chrono::{DateTime, Utc};
+use flate2::write::{GzDecoder, GzEncoder};
+use flate2::Compression;
 use rusqlite::Error as RusqliteError;
 use rusqlite::{Connection, OpenFlags, Row};
 use serde::{Deserialize, Serialize};
 use serde_json::{from_slice, to_vec};
+use std::io::Write;
 
 // TODO: close db connection
-// TODO: compress response
-// TODO: increment hits, update hit timestamp
 // TODO: fix the other fields :(
+// TODO: increment hits, update hit timestamp
+// TODO: check to make sure the correct tables exist, not just a db
 
 const DBPATH: &str = "cache.db";
 // const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request TEXT, time_last_request TEXT)";
@@ -26,7 +29,6 @@ fn init_db() -> Result<Connection, RusqliteError> {
         DBPATH,
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     ) {
-        // TODO: check to make sure the correct tables exist, not just a db
         return Ok(conn);
     }
 
@@ -40,8 +42,6 @@ fn init_db() -> Result<Connection, RusqliteError> {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
 pub struct Query {
     pub id: i32,
     pub query: String,
@@ -51,16 +51,11 @@ pub struct Query {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
-pub struct Response<T>
-where
-    T: Serialize + for<'a> Deserialize<'a>,
-{
+pub struct Response<T> {
     pub id: i32,
     pub response: T,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 struct InternalResponse {
     id: i32,
     response: Vec<u8>,
@@ -76,14 +71,20 @@ where
 
     fn from_sql(row: &Row<'_>) -> Result<Self, RusqliteError>;
 
-    fn insert(&self, connection: &Connection) -> Result<usize, Error>;
+    fn insert<T>(&self, connection: &Connection, params: T) -> Result<usize, Error>
+    where
+        T: rusqlite::Params,
+    {
+        let mut statement = connection.prepare(Self::insert_query())?;
+        Ok(statement.execute(params)?)
+    }
 
     fn select(connection: &Connection, query: &str) -> Result<Self, Error> {
         let mut statement = connection.prepare(Self::select_query())?;
         let responses = statement.query_map((query,), Self::from_sql)?;
         match responses.last() {
             Some(Ok(last)) => Ok(last),
-            Some(Err(err)) => Err(Error::Rusqlite { 0: err }),
+            Some(Err(err)) => Err(Error::Rusqlite(err)),
             None => Err(Error::NoResponseCache {
                 0: query.to_string(),
             }),
@@ -109,12 +110,6 @@ impl SQL for Query {
             // time_last_request: row.get(5)?,
         })
     }
-
-    fn insert(&self, connection: &Connection) -> Result<usize, Error> {
-        let mut statement = connection.prepare(Self::insert_query())?;
-        // Ok(statement.execute((&self.query, 0, Utc::now().to_string(), Utc::now().to_string()))?)
-        Ok(statement.execute((&self.query,))?)
-    }
 }
 
 impl SQL for InternalResponse {
@@ -132,17 +127,32 @@ impl SQL for InternalResponse {
             response: row.get(1)?,
         })
     }
+}
 
-    fn insert(&self, connection: &Connection) -> Result<usize, Error> {
-        let mut statement = connection.prepare(Self::insert_query())?;
-        println!("{:?}", statement);
-        Ok(statement.execute((&self.id, &self.response))?)
-    }
+fn compress(response: Vec<u8>) -> Result<Vec<u8>, Error> {
+    let mut e = GzEncoder::new(Vec::new(), Compression::default());
+    let _ = e.write_all(&response);
+    let r = e.finish()?;
+    println!("compressing: {} bytes -> {} bytes", response.len(), r.len(),);
+    Ok(r)
+}
+
+fn decompress(response: Vec<u8>) -> Result<Vec<u8>, Error> {
+    let writer = Vec::new();
+    let mut decoder = GzDecoder::new(writer);
+    let _ = decoder.write_all(&response);
+    let r = decoder.finish()?;
+    println!(
+        "decompressing: {} bytes -> {} bytes",
+        response.len(),
+        r.len(),
+    );
+    Ok(r)
 }
 
 pub fn insert<T>(query: &String, response: &T) -> Result<(), Error>
 where
-    T: Serialize + for<'a> Deserialize<'a>,
+    T: Serialize,
 {
     let connection = init_db()?;
     let q = Query {
@@ -152,26 +162,25 @@ where
         // time_first_request: Utc::now().to_string(),
         // time_last_request: Utc::now().to_string(),
     };
-    q.insert(&connection)?;
+    q.insert(&connection, (&q.query,))?;
     let id = Query::select(&connection, &query)?.id;
     let response = InternalResponse {
         id,
-        response: to_vec(&response)?,
+        response: compress(to_vec(&response)?)?,
     };
-    response.insert(&connection)?;
+    response.insert(&connection, (&response.id, &response.response))?;
     Ok(())
 }
 
-pub fn select<T>(query: &String) -> Result<(Query, Response<T>), Error>
+pub fn select<T>(query: &String) -> Result<Response<T>, Error>
 where
-    T: Serialize + for<'a> Deserialize<'a>,
+    T: for<'a> Deserialize<'a>,
 {
     let connection = init_db()?;
     let query = Query::select(&connection, &query)?;
     let ir = InternalResponse::select(&connection, &(query.id.to_string()))?;
-    let response = Response::<T> {
+    Ok(Response::<T> {
         id: ir.id,
-        response: from_slice(&ir.response)?,
-    };
-    Ok((query, response))
+        response: from_slice(&decompress(ir.response)?)?,
+    })
 }

@@ -1,6 +1,13 @@
+use crate::error::Error;
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::Read;
+
+// TODO: move this to database
+
 const TOKENPATH: &str = "token.tk";
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Token {
     access_token: String,
     token_type: String,
@@ -13,18 +20,10 @@ impl Token {
         format!("{} {}", self.token_type, self.access_token)
     }
 
-    pub fn load() -> Result<String, ::std::io::Error> {
-        use std::{fs::File, io::prelude::*};
-
+    pub fn load() -> Result<String, Error> {
         let mut file = File::open(TOKENPATH)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-
-        // I don't know how to do this error type in a sane way
-        // enum using thiserror, serde_json provides an anyhow::Result?
-        match serde_json::from_str::<Self>(&contents) {
-            Ok(json) => Ok(json.fmt()),
-            Err(_) => todo!(),
-        }
+        Ok(serde_json::from_str::<Self>(&contents)?.fmt())
     }
 }

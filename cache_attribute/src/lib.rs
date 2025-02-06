@@ -3,6 +3,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{parse, Error, ItemStruct, LitBool};
 
+// TODO: solve pagination :(
+
 // combines all relevant derives and switches the `run_query` impl based on whether the query struct requests caching to be enabled
 #[proc_macro_attribute]
 pub fn cache(attr: TokenStream, item: TokenStream) -> TokenStream {

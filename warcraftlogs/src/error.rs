@@ -10,6 +10,8 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
     #[error(transparent)]
     Rusqlite(#[from] rusqlite::Error),
+    #[error(transparent)]
+    Std(#[from] std::io::Error),
     #[error("No response from cache for query {0}")]
     NoResponseCache(String),
     #[error("No response from endpoint for query.")]
