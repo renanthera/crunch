@@ -1,5 +1,5 @@
-mod request_points;
 mod fights;
+mod request_points;
 
 pub use warcraftlogs::request::Cache;
 

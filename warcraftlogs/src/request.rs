@@ -35,13 +35,12 @@ where
     U: cynic::QueryVariables + serde::Serialize,
     T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
 {
-    let params_string = serde_json::to_string(&params);
     let query = make_query(params);
-    let query_string = query.query.clone();
-    match cache::select::<T>(&query.query) {
+    let query_string = serde_json::to_string(&query)?;
+    match cache::select::<T>(&query_string) {
         Ok(response) => Ok(response.response),
         Err(Error::NoResponseCache(..)) => {
-            println!("Cache miss for query: {} {:?}", query.query, params_string);
+            println!("Cache miss for query:\n{}", query_string);
             let request = make_request(query)?;
             cache::insert(&query_string, &request)?;
             Ok(request)

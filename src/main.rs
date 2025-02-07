@@ -1,5 +1,5 @@
-use std::time::Instant;
 use query::*;
+use std::time::Instant;
 
 fn wrap(f: fn() -> ()) {
     let a = Instant::now();

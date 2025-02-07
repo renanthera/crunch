@@ -11,7 +11,11 @@ pub struct ReportFightsVariables<'a> {
 }
 
 #[cache(true)]
-#[cynic(graphql_type = "Query", variables = "ReportFightsVariables", schema = "warcraftlogs")]
+#[cynic(
+    graphql_type = "Query",
+    variables = "ReportFightsVariables",
+    schema = "warcraftlogs"
+)]
 pub struct ReportFights {
     pub report_data: Option<ReportData>,
 }
