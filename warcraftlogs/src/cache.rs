@@ -113,7 +113,9 @@ where
 
     fn from_sql(row: &Row<'_>) -> Result<Self, RusqliteError>;
 
-    fn insert<T>(&self, connection: &Connection, params: T) -> Result<usize, Error>
+    fn insert(&self, connection: &Connection) -> Result<usize, Error>;
+
+    fn _insert<T>(&self, connection: &Connection, params: T) -> Result<usize, Error>
     where
         T: rusqlite::Params,
     {
@@ -154,6 +156,18 @@ impl SQL for Query {
         UPDATE_QUERY
     }
 
+    fn insert(&self, connection: &Connection) -> Result<usize, Error> {
+        self._insert(
+            connection,
+            (
+                &self.query,
+                &self.hits,
+                &self.time_first_request,
+                &self.time_last_request,
+            ),
+        )
+    }
+
     fn from_sql(row: &Row<'_>) -> Result<Query, RusqliteError> {
         Ok(Query {
             id: row.get(0)?,
@@ -172,6 +186,10 @@ impl SQL for InternalResponse {
 
     fn insert_query() -> &'static str {
         INSERT_RESPONSE
+    }
+
+    fn insert(&self, connection: &Connection) -> Result<usize, Error> {
+        self._insert(connection, (&self.id, &self.response))
     }
 
     fn from_sql(row: &Row<'_>) -> Result<InternalResponse, RusqliteError> {
@@ -212,18 +230,10 @@ where
         query: query.clone(),
         ..Default::default()
     };
-    q.insert(
-        &connection,
-        (
-            &q.query,
-            &q.hits,
-            &q.time_first_request,
-            &q.time_last_request,
-        ),
-    )?;
+    q.insert(&connection)?;
     let id = Query::select(&connection, &query)?.id;
-    let response: InternalResponse = Response::<T>::try_into(Response { id, response })?;
-    response.insert(&connection, (&response.id, &response.response))?;
+    let response = InternalResponse::try_from(Response { id, response })?;
+    response.insert(&connection)?;
     Ok(())
 }
 
