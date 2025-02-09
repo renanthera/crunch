@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::request::{run_query_cached, run_query_uncached};
 use chrono::{DateTime, Utc};
 use flate2::write::{GzDecoder, GzEncoder};
 use flate2::Compression;
@@ -20,6 +21,42 @@ const INSERT_RESPONSE: &str = "INSERT INTO response (id, response) VALUES (?1, ?
 const UPDATE_QUERY: &str = "UPDATE query SET hits = ?2, time_last_request = ?3 WHERE id = ?1";
 const SELECT_QUERY: &str = "SELECT * FROM query WHERE query = (?1)";
 const SELECT_RESPONSE: &str = "SELECT * FROM response WHERE id = (?)";
+
+// implemented by proc macro cache_attribute::cache
+pub trait Cache {
+    fn run_query<U>(params: U) -> Result<Self, Error>
+    where
+        U: cynic::QueryVariables + serde::Serialize,
+        Self: Sized
+            + cynic::QueryBuilder<U>
+            + serde::Serialize
+            + for<'a> serde::Deserialize<'a>
+            + 'static;
+
+    fn run_query_cached<U>(params: U) -> Result<Self, Error>
+    where
+        U: cynic::QueryVariables + serde::Serialize,
+        Self: Sized
+            + cynic::QueryBuilder<U>
+            + serde::Serialize
+            + for<'a> serde::Deserialize<'a>
+            + 'static,
+    {
+        run_query_cached(params)
+    }
+
+    fn run_query_uncached<U>(params: U) -> Result<Self, Error>
+    where
+        U: cynic::QueryVariables + serde::Serialize,
+        Self: Sized
+            + cynic::QueryBuilder<U>
+            + serde::Serialize
+            + for<'a> serde::Deserialize<'a>
+            + 'static,
+    {
+        run_query_uncached(params)
+    }
+}
 
 fn init_db() -> Result<Connection, RusqliteError> {
     if let Ok(conn) = Connection::open_with_flags(

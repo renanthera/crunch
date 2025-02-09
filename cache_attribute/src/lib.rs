@@ -34,7 +34,7 @@ pub fn cache(attr: TokenStream, item: TokenStream) -> TokenStream {
         #[serde(rename_all = "camelCase")]
         #input
 
-        impl warcraftlogs::request::Cache for #name {
+        impl warcraftlogs::cache::Cache for #name {
             fn run_query<U>(params: U) -> Result<Self, warcraftlogs::error::Error>
             where
                 U: cynic::QueryVariables + serde::Serialize,

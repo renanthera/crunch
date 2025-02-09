@@ -1,9 +1,7 @@
 #![allow(dead_code)]
+use crate::schema;
 use cache_attribute::cache;
 use cynic;
-
-#[cynic::schema("warcraftlogs")]
-mod schema {}
 
 #[cache(false)]
 #[cynic(graphql_type = "Query")]

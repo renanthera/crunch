@@ -6,8 +6,7 @@ use cynic::http::ReqwestBlockingExt;
 const ENDPOINT: &str = "https://www.warcraftlogs.com/api/v2/client";
 
 // TODO: how do you solve pagination? <- attribute macro :)
-// TODO: better query stringification
-// TODO: auto update schema in build step
+// TODO: auto update schema in build step?
 
 fn make_query<T, U>(params: U) -> cynic::Operation<T, U>
 where
@@ -24,10 +23,18 @@ where
 {
     reqwest::blocking::Client::new()
         .post(ENDPOINT)
-        .header("Authorization", token::Token::load().unwrap())
+        .header("Authorization", token::Token::load()?)
         .run_graphql(query)?
         .data
         .ok_or(Error::NoResponseQuery)
+}
+
+fn oneline(query: &str) -> String {
+    query
+        .split_terminator("\n")
+        .map(|str| str.trim())
+        .collect::<Vec<&str>>()
+        .join(" ")
 }
 
 pub fn run_query_cached<T, U>(params: U) -> Result<T, Error>
@@ -36,13 +43,15 @@ where
     T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
 {
     let query = make_query(params);
-    let query_string = serde_json::to_string(&query)?;
-    match cache::select::<T>(&query_string) {
+    let query_str = oneline(&query.query);
+    let var_str = oneline(&serde_json::to_string_pretty(&query.variables)?);
+    let key = format!("{} {}", query_str, var_str);
+    match cache::select::<T>(&key) {
         Ok(response) => Ok(response.response),
         Err(Error::NoResponseCache(..)) => {
-            println!("Cache miss for query:\n{}", query_string);
+            println!("Cache miss.\n{}\nvariables: {}", query_str, var_str);
             let request = make_request(query)?;
-            cache::insert(&query_string, &request)?;
+            cache::insert(&key, &request)?;
             Ok(request)
         }
         Err(err) => Err(err),
@@ -55,17 +64,4 @@ where
     T: cynic::QueryBuilder<U> + serde::Serialize + for<'a> serde::Deserialize<'a> + 'static,
 {
     make_request(make_query(params))
-}
-
-// implemented by proc macro cache_attribute::cache
-#[allow(dead_code)]
-pub trait Cache {
-    fn run_query<U>(params: U) -> Result<Self, Error>
-    where
-        U: cynic::QueryVariables + serde::Serialize,
-        Self: Sized
-            + cynic::QueryBuilder<U>
-            + serde::Serialize
-            + for<'a> serde::Deserialize<'a>
-            + 'static;
 }

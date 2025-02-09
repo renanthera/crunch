@@ -7,7 +7,6 @@ edition = "2021"
 members = ["cli", "warcraftlogs", "query", "cache_attribute", "analysis"]
 
 [dependencies]
-warcraftlogs = { path = "./warcraftlogs" }
 query = { path = "./query" }
 
 [workspace.dependencies]
