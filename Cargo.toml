@@ -8,7 +8,6 @@ members = ["cli", "warcraftlogs", "query", "cache_attribute", "analysis"]
 
 [dependencies]
 query = { path = "./query" }
-warcraftlogs.workspace = true
 
 [workspace.dependencies]
 warcraftlogs = { path = "./warcraftlogs" }

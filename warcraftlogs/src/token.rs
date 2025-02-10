@@ -16,18 +16,16 @@ use chrono::{DateTime, Utc};
 pub struct Token {
     access_token: String,
     token_type: String,
-    // expires_in: chrono::TimeDelta, TODO: serialize TimeDelta somehow
     expires_at: DateTime<Utc>,
 }
 
 impl SQL for Token {
     fn select_query() -> &'static str {
-        "SELECT * FROM token"
+        "SELECT access_token, token_type, expires_at FROM token"
     }
 
     fn insert_query() -> &'static str {
-        // "INSERT INTO token (access_token, token_type, expires_in, expires_at) VALUES (?1, ?2, ?3, ?4)"
-        "INSERT INTO token (access_token, token_type, expires_at) VALUES (?1, ?2, ?3, ?4)"
+        "INSERT INTO token (access_token, token_type, expires_at) VALUES (?1, ?2, ?3)"
     }
 
     fn create_table() -> &'static str {
@@ -40,7 +38,6 @@ impl SQL for Token {
             (
                 &self.access_token,
                 &self.token_type,
-                &self.expires_in,
                 &self.expires_at,
             ),
         )
@@ -60,8 +57,7 @@ impl SQL for Token {
         Ok(Self {
             access_token: row.get(0)?,
             token_type: row.get(1)?,
-            // expires_in: row.get(2)?,
-            expires_at: row.get(3)?,
+            expires_at: row.get(2)?,
         })
     }
 }
@@ -80,11 +76,19 @@ impl TryFrom<Token> for HeaderValue {
 impl Token {
     pub fn get_token() -> Result<Token, Error> {
         let connection = init_db()?;
-        Ok(Token::select(&connection, "")?)
+        match Token::select(&connection, "") {
+            Ok(token) => Ok(token),
+            Err(Error::NoResponseCache(..)) => {
+                let token = Self::refresh_token()?;
+                token.insert(&connection)?;
+                Ok(token)
+            },
+            Err(err) => Err(Error::from(err))
+        }
     }
 
     pub fn refresh_token() -> Result<Self, Error> {
-        let client_id = "9e2d1773-fba5-4376-b99e-ebcb6699d11d".to_string();
+        let client_id = std::env::var("CLIENT_ID").expect("No CLIENT_ID environment variable.").to_string();
         let auth_uri = "https://www.warcraftlogs.com/oauth/authorize".to_string();
         let token_uri = "https://www.warcraftlogs.com/oauth/token".to_string();
         let redirect_uri = "https://localhost".to_string();
@@ -126,24 +130,17 @@ impl Token {
 
         let token_type = match *token_result.token_type() {
             oauth2::basic::BasicTokenType::Bearer => "Bearer".to_string(),
-            _ => todo!()
+            _ => panic!("Warcraftlogs v2 API auth changed, oh no")
         };
-
-        // let expires_in = match token_result.expires_in() {
-        //     // Some(duration) => DateTime::from_timestamp( duration.as_secs().try_into().unwrap(), 0).unwrap(),
-        //     Some(duration) => Utc::now() + duration,
-        //     None => todo!()
-        // };
 
         let expires_at = match token_result.expires_in() {
             Some(duration) => Utc::now() + duration,
-            None => todo!()
+            None => panic!("Invalid duration of token expires_at field")
         };
 
         Ok(Self {
             access_token,
             token_type,
-            // expires_in,
             expires_at,
         })
     }
