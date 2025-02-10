@@ -23,7 +23,7 @@ where
 {
     reqwest::blocking::Client::new()
         .post(ENDPOINT)
-        .header("Authorization", token::Token::load()?)
+        .header("Authorization", token::get_token()?)
         .run_graphql(query)?
         .data
         .ok_or(Error::NoResponseQuery)

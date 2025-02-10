@@ -13,9 +13,10 @@ use std::io::Write;
 // TODO: check to make sure the correct tables exist, not just a db
 // TODO: is postcard more effective than serde for serialization
 
-const DBPATH: &str = "cache.db";
+pub const DBPATH: &str = "cache.db";
 const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request BLOB, time_last_request BLOB)";
-const CREATE_RESPONSE_TABLE: &str = "CREATE TABLE response (id INTEGER PRIMARY KEY, response TEXT)";
+const CREATE_RESPONSE_TABLE: &str = "CREATE TABLE response (id INTEGER PRIMARY KEY, response BLOB)";
+const CREATE_TOKEN_TABLE: &str = "CREATE TABLE token (id INTEGER PRIMARY KEY, access_token TEXT, token_type TEXT, expires_in INTEGER, expires_at REAL)";
 const INSERT_QUERY: &str = "INSERT INTO query (query, hits, time_first_request, time_last_request) VALUES (?1, ?2, ?3, ?4)";
 const INSERT_RESPONSE: &str = "INSERT INTO response (id, response) VALUES (?1, ?2)";
 const UPDATE_QUERY: &str = "UPDATE query SET hits = ?2, time_last_request = ?3 WHERE id = ?1";
@@ -58,7 +59,7 @@ pub trait Cache {
     }
 }
 
-fn init_db() -> Result<Connection, RusqliteError> {
+pub fn init_db() -> Result<Connection, RusqliteError> {
     if let Ok(conn) = Connection::open_with_flags(
         DBPATH,
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -70,6 +71,7 @@ fn init_db() -> Result<Connection, RusqliteError> {
         Ok(conn) => {
             conn.execute(CREATE_QUERY_TABLE, ())?;
             conn.execute(CREATE_RESPONSE_TABLE, ())?;
+            conn.execute(CREATE_TOKEN_TABLE, ())?;
             Ok(conn)
         }
         Err(err) => Err(err),
@@ -85,23 +87,17 @@ pub struct Query {
     pub time_last_request: DateTime<Utc>,
 }
 
-impl Default for Query {
-    fn default() -> Self {
-        Query {
-            id: Default::default(),
-            query: Default::default(),
-            hits: Default::default(),
-            time_first_request: Utc::now(),
-            time_last_request: Utc::now(),
-        }
-    }
-}
-
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Response<T> {
     pub id: i32,
     pub response: T,
+}
+
+#[derive(Debug)]
+struct InternalResponse {
+    id: i32,
+    response: Vec<u8>,
 }
 
 impl<T> TryFrom<InternalResponse> for Response<T>
@@ -117,12 +113,6 @@ where
     }
 }
 
-#[derive(Debug)]
-struct InternalResponse {
-    id: i32,
-    response: Vec<u8>,
-}
-
 impl<T> TryFrom<Response<T>> for InternalResponse
 where
     T: Serialize,
@@ -136,7 +126,19 @@ where
     }
 }
 
-trait SQL
+impl Default for Query {
+    fn default() -> Self {
+        Query {
+            id: Default::default(),
+            query: Default::default(),
+            hits: Default::default(),
+            time_first_request: Utc::now(),
+            time_last_request: Utc::now(),
+        }
+    }
+}
+
+pub trait SQL
 where
     Self: Sized,
 {

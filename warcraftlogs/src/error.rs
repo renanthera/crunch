@@ -5,7 +5,9 @@ pub enum Error {
     #[error(transparent)]
     Cynic(#[from] cynic::GraphQlError),
     #[error(transparent)]
-    Reqwest(#[from] cynic::http::CynicReqwestError),
+    ReqwestCynic(#[from] cynic::http::CynicReqwestError),
+    #[error(transparent)]
+    ReqestHeader(#[from] reqwest::header::InvalidHeaderValue),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
     #[error(transparent)]

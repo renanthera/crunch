@@ -1694,6 +1694,7 @@ dependencies = [
  "chrono",
  "cynic",
  "flate2",
+ "http",
  "reqwest",
  "rusqlite",
  "serde",
