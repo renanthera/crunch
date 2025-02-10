@@ -1,6 +1,6 @@
 use crate::cache;
 use crate::error::Error;
-use crate::token;
+use crate::token::Token;
 use cynic::http::ReqwestBlockingExt;
 
 const ENDPOINT: &str = "https://www.warcraftlogs.com/api/v2/client";
@@ -23,7 +23,7 @@ where
 {
     reqwest::blocking::Client::new()
         .post(ENDPOINT)
-        .header("Authorization", token::get_token()?)
+        .header("Authorization", Token::get_token()?)
         .run_graphql(query)?
         .data
         .ok_or(Error::NoResponseQuery)

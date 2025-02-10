@@ -1,5 +1,6 @@
 use crate::error::Error;
 use crate::request::{run_query_cached, run_query_uncached};
+use crate::token::Token;
 use chrono::{DateTime, Utc};
 use flate2::write::{GzDecoder, GzEncoder};
 use flate2::Compression;
@@ -14,14 +15,6 @@ use std::io::Write;
 // TODO: is postcard more effective than serde for serialization
 
 pub const DBPATH: &str = "cache.db";
-const CREATE_QUERY_TABLE: &str = "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request BLOB, time_last_request BLOB)";
-const CREATE_RESPONSE_TABLE: &str = "CREATE TABLE response (id INTEGER PRIMARY KEY, response BLOB)";
-const CREATE_TOKEN_TABLE: &str = "CREATE TABLE token (id INTEGER PRIMARY KEY, access_token TEXT, token_type TEXT, expires_in INTEGER, expires_at REAL)";
-const INSERT_QUERY: &str = "INSERT INTO query (query, hits, time_first_request, time_last_request) VALUES (?1, ?2, ?3, ?4)";
-const INSERT_RESPONSE: &str = "INSERT INTO response (id, response) VALUES (?1, ?2)";
-const UPDATE_QUERY: &str = "UPDATE query SET hits = ?2, time_last_request = ?3 WHERE id = ?1";
-const SELECT_QUERY: &str = "SELECT * FROM query WHERE query = (?1)";
-const SELECT_RESPONSE: &str = "SELECT * FROM response WHERE id = (?)";
 
 // implemented by proc macro cache_attribute::cache
 pub trait Cache {
@@ -69,9 +62,9 @@ pub fn init_db() -> Result<Connection, RusqliteError> {
 
     match Connection::open(DBPATH) {
         Ok(conn) => {
-            conn.execute(CREATE_QUERY_TABLE, ())?;
-            conn.execute(CREATE_RESPONSE_TABLE, ())?;
-            conn.execute(CREATE_TOKEN_TABLE, ())?;
+            conn.execute(Query::create_table(), ())?;
+            conn.execute(InternalResponse::create_table(), ())?;
+            conn.execute(Token::create_table(), ())?;
             Ok(conn)
         }
         Err(err) => Err(err),
@@ -150,6 +143,8 @@ where
         "NONE"
     }
 
+    fn create_table() -> &'static str;
+
     fn from_sql(row: &Row<'_>) -> Result<Self, RusqliteError>;
 
     fn insert(&self, connection: &Connection) -> Result<usize, Error>;
@@ -184,15 +179,19 @@ where
 
 impl SQL for Query {
     fn select_query() -> &'static str {
-        SELECT_QUERY
+        "SELECT * FROM query WHERE query = (?1)"
     }
 
     fn insert_query() -> &'static str {
-        INSERT_QUERY
+        "INSERT INTO query (query, hits, time_first_request, time_last_request) VALUES (?1, ?2, ?3, ?4)"
     }
 
     fn update_query() -> &'static str {
-        UPDATE_QUERY
+        "UPDATE query SET hits = ?2, time_last_request = ?3 WHERE id = ?1"
+    }
+
+    fn create_table() -> &'static str {
+        "CREATE TABLE query (id INTEGER PRIMARY KEY, query TEXT, hits INT, time_first_request BLOB, time_last_request BLOB)"
     }
 
     fn insert(&self, connection: &Connection) -> Result<usize, Error> {
@@ -220,11 +219,15 @@ impl SQL for Query {
 
 impl SQL for InternalResponse {
     fn select_query() -> &'static str {
-        SELECT_RESPONSE
+        "SELECT * FROM response WHERE id = (?)"
     }
 
     fn insert_query() -> &'static str {
-        INSERT_RESPONSE
+        "INSERT INTO response (id, response) VALUES (?1, ?2)"
+    }
+
+    fn create_table() -> &'static str {
+        "CREATE TABLE response (id INTEGER PRIMARY KEY, response BLOB)"
     }
 
     fn insert(&self, connection: &Connection) -> Result<usize, Error> {
