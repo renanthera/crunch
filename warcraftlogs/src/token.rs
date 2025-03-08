@@ -1,16 +1,17 @@
 use crate::cache::{init_db, SQL};
 use crate::error::Error;
+use chrono::{DateTime, Utc};
 use oauth2::basic::BasicClient;
 use oauth2::reqwest;
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, RedirectUrl, TokenUrl, TokenResponse
+    AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, RedirectUrl, TokenResponse,
+    TokenUrl,
 };
 use open::that_detached;
 use reqwest::blocking::ClientBuilder;
 use reqwest::header::HeaderValue;
 use reqwest::redirect::Policy;
 use std::io::{stdin, stdout, Write};
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Default)]
 pub struct Token {
@@ -35,11 +36,7 @@ impl SQL for Token {
     fn insert(&self, connection: &rusqlite::Connection) -> Result<usize, Error> {
         self._insert(
             connection,
-            (
-                &self.access_token,
-                &self.token_type,
-                &self.expires_at,
-            ),
+            (&self.access_token, &self.token_type, &self.expires_at),
         )
     }
 
@@ -82,13 +79,15 @@ impl Token {
                 let token = Self::refresh_token()?;
                 token.insert(&connection)?;
                 Ok(token)
-            },
-            Err(err) => Err(Error::from(err))
+            }
+            Err(err) => Err(Error::from(err)),
         }
     }
 
     pub fn refresh_token() -> Result<Self, Error> {
-        let client_id = std::env::var("CLIENT_ID").expect("No CLIENT_ID environment variable.").to_string();
+        let client_id = std::env::var("CLIENT_ID")
+            .expect("No CLIENT_ID environment variable.")
+            .to_string();
         let auth_uri = "https://www.warcraftlogs.com/oauth/authorize".to_string();
         let token_uri = "https://www.warcraftlogs.com/oauth/token".to_string();
         let redirect_uri = "https://localhost".to_string();
@@ -130,12 +129,12 @@ impl Token {
 
         let token_type = match *token_result.token_type() {
             oauth2::basic::BasicTokenType::Bearer => "Bearer".to_string(),
-            _ => panic!("Warcraftlogs v2 API auth changed, oh no")
+            _ => panic!("Warcraftlogs v2 API auth changed"),
         };
 
         let expires_at = match token_result.expires_in() {
             Some(duration) => Utc::now() + duration,
-            None => panic!("Invalid duration of token expires_at field")
+            None => panic!("Invalid duration of token expires_at field"),
         };
 
         Ok(Self {
