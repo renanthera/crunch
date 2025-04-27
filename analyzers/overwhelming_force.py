@@ -1,6 +1,7 @@
 from .helper import *
 from dataclasses import dataclass, field
 from math import sqrt
+import wcl
 
 # 2$Off$#244F4B$damage$-1$0.0.0.Any$0.0.0.Any$true$0.0.0.Any$true$185099|205523|100780|452333|386959
 ids = [
@@ -50,20 +51,47 @@ def final(analyzer, event):
   update_event.final_hit_count += 1
   update_event.final_timestamp.append(event.get('timestamp'))
 
+def fight_params_update( self ):
+  def entry_match_fn( id ):
+    return lambda combatant_info: any( [
+      talent.get( 'id' ) == id
+      for talent in [
+          entry
+          for tree in [ 'talentTree', 'talent_tree', 'pvpTalents' ]
+          for entry in combatant_info.get( tree, [] )
+      ]
+    ] )
+
+  players = [
+    f"'{player}'"
+    for player in wcl.getPlayerNameWith( self.params, entry_match_fn( 125029 ) )
+  ]
+  player_names = ', '.join( players )
+  clause_0 = f"(source.name in ({player_names}))"
+
+  clause_1 = f"(ability.id in ({', '.join((str(x) for x in ids))}))"
+
+  return {
+    'filterExpression': f"{clause_0} and {clause_1}"
+  }
+
 def coefficient(report_codes):
+  import json
   a = Analyzer(
     report_codes,
     params={
       'limit': 25000,
-      'filterExpression': f'ability.id in ({", ".join([str(id) for id in ids])})',
+      # 'filterExpression': f'ability.id in ({", ".join([str(id) for id in ids])})',
+      'filterExpression': "type='combatantinfo'",
       'encounterID': 3013
     },
     callbacks=[
       {
         'any': False,
-        'callback': lambda _, e: print(e)
+        'callback': lambda _, e: print(json.dumps(e, indent=2))
       },
       {
+        'type': 'damage',
         'abilityGameID': [
           205523,
           100780,
@@ -78,7 +106,9 @@ def coefficient(report_codes):
     ],
     event_data={
       'events': dict(),
-    })
+    },
+    fight_params_update=fight_params_update
+  )
 
   nc = 0
   c = 0
