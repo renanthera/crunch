@@ -61,15 +61,25 @@ import analyzers
 #   'XF1jTKqbCVwrmgaB',
 # ] )
 
-analyzers.tww2_ww.counts( [
-  'XW8Adq9aTzDwtnVZ',
-  'p6gbdw2FMTCArZ1y',
-  'VgyXCw4YLFNmDfhB',
-  'nMNTgR6Kt9kwfYaA',
-  'NRvGjKcCrWVQH1nw',
-  'Z2x6j9HcCrQvFk38',
-  '87hwKNV9YJXnpfCv',
-  'aNj4wRGdBf6qJtXb'
+# analyzers.tww2_ww.counts( [
+#   'XW8Adq9aTzDwtnVZ',
+#   'p6gbdw2FMTCArZ1y',
+#   'VgyXCw4YLFNmDfhB',
+#   'nMNTgR6Kt9kwfYaA',
+#   'NRvGjKcCrWVQH1nw',
+#   'Z2x6j9HcCrQvFk38',
+#   '87hwKNV9YJXnpfCv',
+#   'aNj4wRGdBf6qJtXb'
+# ] )
+
+analyzers.overwhelming_force.coefficient( [
+  'CvKQW1AdD42wmMz3',
+  'gWMFdXk2pnL4fcx6',
+  'hGd96NyZ8v7Hpw34',
+  'HG2xLYBJVyvDPK6t',
+  'F1mZrfCP4MqK7dHg',
+  'v7KBtzr4jhN3TgGk',
+  'WtgAvP9N2aTFQJmr'
 ] )
 
 # analyzers.dual_threat.probability_at_count( [ 'gqyW1GPaYfX3mzKn' ] )

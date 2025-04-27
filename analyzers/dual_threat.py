@@ -90,7 +90,7 @@ def probability_at_count( report_codes ):
 
   o = {}
   for fight in t.data:
-    for player, data in fight[ 'event_data' ][ 'info' ].items():
+    for _, data in fight[ 'event_data' ][ 'info' ].items():
       for index in data[ 'data' ]:
         o.setdefault(index['index'], {'SUCCESS': 0, 'FAIL': 0})
         o[index['index']]['SUCCESS'] += index['successful']
