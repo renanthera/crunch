@@ -1,85 +1,40 @@
 import analyzers
+import wcl
 
-# analyzers.aspect_of_harmony.spender( [
-#   '3VWnfgKmDbxqRFYM'
+# analyzers.overwhelming_force.coefficient( [
+#   # strongboi
+#   'CvKQW1AdD42wmMz3',
+#   'gWMFdXk2pnL4fcx6',
+#   'hGd96NyZ8v7Hpw34',
+#   'HG2xLYBJVyvDPK6t',
+#   'F1mZrfCP4MqK7dHg',
+#   'v7KBtzr4jhN3TgGk',
+#   'WtgAvP9N2aTFQJmr',
+#   # malmie
+#   'DXfYn9xA3jCPdVwp',
+#   '9v1FZtJQGMC7qx8m',
+#   '7JxTBf2DPKYht9vj',
+#   '83bjtyX7ZzdWJ9HQ',
+#   'CjTMhxdKwFgR7Pqc',
+#   'X1WYaDcBvMrQmRpV',
+#   'X7GzLdh8VB3q2MAb',
+#   'ThpGywvM4BFcPx2b',
+#   # dwarf
+#   # 'QCyrLh7tG91B3TMP',
+#   # 'PkrFRp28mXMwNTjJ',
+#   # 'WT3VJ8dMknhAL7XB',
+#   # 'NvPQc2YA1VnqkRMg'
 # ] )
-
-# analyzers.tww1_brm.counts( [
-#   'VXHxrPf938pWYBMc',
-#   'KBXLYNJHzC1cvWbV',
-#   'xtKDrk1Cpf6RczYA',
-#   'LNY1Hf7BGgDmjhKa',
-#   'VbKC7fpd2wF9XzkB',
-#   '7B8ZTVghLjfpCcFy',
-#   'AKc43VZG1JH7fkpd',
-#   'VCHrGT2RgW3Zv4kq',
-#   '6WbJCgZ3mHkM2tRn',
-#   'GqgnA43LaWNbY1R7',
-#   'gKDFYMHkxq6VABdJ',
-#   'K31vab6cTDRn9trk',
-#   'JV8c3dCakAjKqDY4',
-#   'MKZ9xCTykDbnaGpt',
-#   'ybrDBmMKQ3gkzwN7',
-#   'bHfgPvrhQtpDLjCw',
-#   'jq92c4ZzbGKg7tXN',
-#   'WPrVNvXTfR7kJ8xQ',
-#   'Km2DyJa4b97gkfHM',
-#   'a9hmD1x8HLkWVnGq',
-#   'WYbAm2cCJw1DpXgK',
-#   'MZAXwafgrWdGHJmR',
-#   'HxRDXrZWN4Bfd3vT',
-#   'VtcvLX4hA6rpw8kR',
-#   'ky4dzJGKM2NL91QH',
-#   'D9Tkdxtzw3FG8P2R',
-# ] )
-
-# analyzers.dual_threat.probability_at_count( [
-#   'T9pZaqbDXjKMmWYg',
-#   # 'Krf8vtAZFycxJL3a'
-#   'amCgRMhq2v1Hn3dQ',
-#   'vr9AQ4nNYh1m7Rfb',
-#   'TDRzawK863Jb4k7N',
-#   'Xd8aLMchkfwGpnYb',
-#   'Mzrn8DaC6dhPcpHN',
-#   'AJd8hxPaz34RmVtr',
-#   'D6HqBGmXZwtvK3yL',
-#   'jx1Vc4C8d72Xpz9F',
-#   'jD6ctdg82AJkLaGP',
-#   'hc3a48AJzQVKgPGv',
-#   'mN1MTvD2QjawBZkt',
-#   'DQ3W9r8MHt6CRYFA',
-#   'tywx1KapgfGqnk48',
-#   'QVJftk4cDrRTWY3F',
-#   'ntq6mkTYjRwJFMp9',
-#   'K8dxQAmN7rHtWqpn',
-#   'HRf7pyznh28qmVwb',
-#   'hZjMQGNVYKLkvH6b',
-#   'a32pZrwgyG6jbhTn',
-#   'gwZbyLDRNQ2CHAGP',
-#   'xzMtT2kNvYrVhmqC',
-#   'L9JBRq6Xgkj4xyKz',
-#   'XF1jTKqbCVwrmgaB',
-# ] )
-
-# analyzers.tww2_ww.counts( [
-#   'XW8Adq9aTzDwtnVZ',
-#   'p6gbdw2FMTCArZ1y',
-#   'VgyXCw4YLFNmDfhB',
-#   'nMNTgR6Kt9kwfYaA',
-#   'NRvGjKcCrWVQH1nw',
-#   'Z2x6j9HcCrQvFk38',
-#   '87hwKNV9YJXnpfCv',
-#   'aNj4wRGdBf6qJtXb'
-# ] )
-
-analyzers.overwhelming_force.coefficient( [
-  'CvKQW1AdD42wmMz3',
-  'gWMFdXk2pnL4fcx6',
-  'hGd96NyZ8v7Hpw34',
-  'HG2xLYBJVyvDPK6t',
-  'F1mZrfCP4MqK7dHg',
-  'v7KBtzr4jhN3TgGk',
-  'WtgAvP9N2aTFQJmr'
-] )
 
 # analyzers.dual_threat.probability_at_count( [ 'gqyW1GPaYfX3mzKn' ] )
+
+import json
+params = {'id': 76827088, 'encounterID': 3009, 'difficulty': 5}
+params = {'id': 76827088, 'encounterID': 3013, 'difficulty': 5}
+params = {'id': 76827088, 'encounterID': 3015, 'difficulty': 5}
+ranks = wcl.getRanksForFights(params)
+codes = [parse.get("report", {}).get("code", "") for parse in ranks]
+
+# analyzers.draw_boss_path.draw_path(codes, "The Geargrinder", params)
+# analyzers.draw_boss_path.draw_path(codes, "Sprocketmonger Lockenstock", params)
+analyzers.draw_boss_path.draw_path(codes, 229953, params)

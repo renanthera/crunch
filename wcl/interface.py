@@ -111,3 +111,6 @@ def getPlayerNameWithTalent( params, talent_id ):
     getPlayerFromID( player_id, params )
     for player_id in getPlayerWith( params, talent_match_fn )
   ]
+
+def getRanksForFights( params ):
+  return Request( query.EncounterRankings( params ) ).data.get('ranks', [])

@@ -132,6 +132,61 @@ class GQL_EventDataType( GQL_Enum ):
     'Threat',
   ]
 
+class GQL_RankingCompareType( GQL_Enum ):
+  allowed = [
+    'Rankings',
+    'Parses'
+  ]
+
+class GQL_CharacterRankingMetricType( GQL_Enum ):
+  allowed = [
+    'bossdps',
+    'default',
+    'dps',
+    'hps',
+    'krsi',
+    'playerscore',
+    'playerspeed',
+    'tankhps',
+    'wdps',
+    'bosscdps',               # FFXIV
+    'cdps',                   # FFXIV
+    'ndps',                   # FFXIV
+    'rdps',                   # FFXIV
+    'bossndps',               # FFXIV
+    'bossrdps',               # FFXIV
+    'healercombineddps',      # FFXIV
+    'healercombinedbossdps',  # FFXIV
+    'healercombinedcdps',     # FFXIV
+    'healercombinedbosscdps', # FFXIV
+    'healercombinedndps',     # FFXIV
+    'healercombinedbossndps', # FFXIV
+    'healercombinedrdps',     # FFXIV
+    'healercombinedbossrdps', # FFXIV
+    'tankcombineddps',        # FFXIV
+    'tankcombinedbossdps',    # FFXIV
+    'tankcombinedcdps',       # FFXIV
+    'tankcombinedbosscdps',   # FFXIV
+    'tankcombinedndps',       # FFXIV
+    'tankcombinedbossndps',   # FFXIV
+    'tankcombinedrdps',       # FFXIV
+    'tankcombinedbossrdps',   # FFXIV
+  ]
+
+class GQL_RoleType( GQL_Enum ):
+  allowed = [
+    'Any',
+    'DPS',
+    'Healer',
+    'Tank',
+  ]
+
+class GQL_RankingTimeframeType( GQL_Enum ):
+  allowed = [
+    'Today',
+    'Historical'
+  ]
+
 class ReportData( Query ):
   pass
 
@@ -219,3 +274,35 @@ class Events( Query ):
   }
 
   fields = [ 'data' ]
+
+class CharacterData( Query ):
+  pass
+
+class Character( Query ):
+  parent = CharacterData
+  args = {
+    'id': GQL_Int,
+    'name': GQL_String,
+    'serverSlug': GQL_String,
+    'serverRegion': GQL_String
+  }
+
+class EncounterRankings( Query ):
+  parent = Character
+  args = {
+    'byBracket': GQL_Boolean,
+    'className': GQL_String,
+    'compare': GQL_RankingCompareType,
+    'difficulty': GQL_Int,
+    'encounterID': GQL_Int,
+    'includeCombatantInfo': GQL_Boolean,
+    'includeOtherPlayers': GQL_Boolean,
+    'includeHistoricalGraph': GQL_Boolean,
+    'includePrivateLogs': GQL_Boolean,
+    'metric': GQL_CharacterRankingMetricType,
+    'partition': GQL_Int,
+    'role': GQL_RoleType,
+    'size': GQL_Int,
+    'specName': GQL_String,
+    'timeframe': GQL_RankingTimeframeType
+  }
