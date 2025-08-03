@@ -3,6 +3,7 @@ from . import caching, token
 import requests
 import json
 from requests.exceptions import HTTPError
+from inspect import isfunction
 
 @caching.cache
 class Request:
@@ -56,13 +57,13 @@ class Request:
       return node.get( 'name' )
 
     def drill_down( data, keys ):
-      if len( keys ) > 0 and data is not None:
+      if len( keys ) > 0 and hasattr(data, 'get'):
         return drill_down( data.get( keys[ 0 ] ), keys[ 1: ] )
       return data
 
     resp = https_request()
 
-    # print('path', [get_path(self.query.tree)])
+    # print('path', get_path(self.query.tree))
     # print(json.dumps(resp, indent=2))
 
     if resp.get( 'errors' ): # pyright: ignore
@@ -76,16 +77,8 @@ class Request:
       path if type(path) is list else [path]
     )
 
-    # print(json.dumps(body, indent=2))
-
-    if isinstance( body, dict ):
-      if any( self.query.paginator.values() ) and body.get(
-          self.query.paginator.get( 'paginationField' ) ):
-        self.query.update( {
-          self.query.paginator.get( 'overrides' ):
-          body.get( self.query.paginator.get( 'paginationField' ) )
-        } )
-
+    if isinstance( body, dict ) and isfunction( self.query.paginator ):
+      if self.query.paginator( body, self.query ):
         body[ 'data' ] += self.get_request().get( 'data' )
 
     return body

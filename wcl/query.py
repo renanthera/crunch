@@ -1,18 +1,17 @@
+from numpy import format_float_scientific
+
+
 class Query:
   params = {}
   parent = None
   cacheable = True
-  paginator = {
-    'paginationField': None,
-    'overrides': None
-  }
+  paginator = None
   args = {}
   fields = []
   children = None
 
   def components( self ):
     name = self.__class__.__name__
-    pagination_field = self.paginator.get( 'paginationField' )
     return {
       'name': name[ 0 ].lower() + name[ 1: ],
       'args': {
@@ -22,7 +21,7 @@ class Query:
       },
       'fields': [
         field if isinstance( field, dict ) else { 'name': field }
-        for field in self.fields + [ self.children, pagination_field ]
+        for field in self.fields + [ self.children ]
         if field is not None
       ]
     } # yapf: disable
@@ -236,11 +235,16 @@ class Fights( Query ):
   fields = [ 'id', 'encounterID', 'name', 'difficulty', 'kill', 'startTime', 'endTime' ]
 
 class Events( Query ):
+  @staticmethod
+  def _paginator( _body, _query ):
+    npt = _body.get( 'nextPageTimestamp', None )
+    if npt is None or npt <= _query.params.get( 'startTime' ):
+      return False
+    _query.update( { 'startTime': npt } )
+    return True
+
   parent = Report
-  paginator = {
-    'paginationField': 'nextPageTimestamp',
-    'overrides': 'startTime'
-  }
+  paginator = _paginator
 
   args = {
     'abilityID': GQL_Float,
@@ -273,7 +277,7 @@ class Events( Query ):
     'wipeCutoff': GQL_Int
   }
 
-  fields = [ 'data' ]
+  fields = [ 'data', 'nextPageTimestamp' ]
 
 class CharacterData( Query ):
   pass
@@ -306,3 +310,36 @@ class EncounterRankings( Query ):
     'specName': GQL_String,
     'timeframe': GQL_RankingTimeframeType
   }
+
+class Reports( Query ):
+  @staticmethod
+  def _paginator( _body, _query ):
+    has_more_pages = _body.get( 'has_more_pages', None )
+    current_page = _body.get( 'current_page', 0 )
+    pagination_limit = _query.params.get( 'pagination_limit' )
+    if has_more_pages is None or not has_more_pages:
+      return False
+    if pagination_limit is not None and current_page >= pagination_limit:
+      return False
+    _query.update( { 'page': current_page + 1 } )
+    return True
+
+  parent = ReportData
+  cacheable = False
+  args = {
+    'endTime': GQL_Float,
+    'guildID': GQL_Int,
+    'guildName': GQL_String,
+    'guildServerSlug': GQL_String,
+    'guildServerRegion': GQL_String,
+    'guildTagID': GQL_Int,
+    'userID': GQL_Int,
+    'limit': GQL_Int,
+    'page': GQL_Int,
+    'startTime': GQL_Float,
+    'zoneID': GQL_Int,
+    'gameZoneID': GQL_Int
+  }
+  fields = [ 'data{code}', 'has_more_pages', 'current_page' ]
+  # fields = [ 'data{code, guild{id, name, server{id, name}}, owner{id, name}, region{id, name}}', 'has_more_pages', 'current_page' ]
+  paginator = _paginator

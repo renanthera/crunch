@@ -59,7 +59,9 @@ def printPlayerDetails( params ):
 def getPointsSpent():
   params = {}
   req = Request( query.PointsSpentThisHour( params ) ).data.get( 'pointsSpentThisHour' )
-  return print( req, 'point' if req == 1 else 'points', 'spent this hour' ) # pyright: ignore
+  v = (req, 'point' if req == 1 else 'points', 'spent this hour')
+  print(*v)
+  return v
 
 def getPlayerFromID( id, params ):
   for player in getPlayers( params ):
@@ -114,3 +116,6 @@ def getPlayerNameWithTalent( params, talent_id ):
 
 def getRanksForFights( params ):
   return Request( query.EncounterRankings( params ) ).data.get('ranks', [])
+
+def getReportCodes( params ):
+  return Request( query.Reports( params ) ).data.get('data', [])
