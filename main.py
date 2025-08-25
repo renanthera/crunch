@@ -1,5 +1,6 @@
 import analyzers
 import wcl
+import cProfile
 
 # analyzers.overwhelming_force.coefficient( [
 #   # strongboi
@@ -33,23 +34,58 @@ import wcl
 # analyzers.dual_threat.probability_aggregate('BgRnxTbyjAp3aDrF','6KT2BAqVgFrywmGx')
 
 # analyzers.tww3_moh_2p.probability_at_count(['JymjCVKqcTGr1nL8'])
+
 # analyzers.tww3_moh_2p.probability_at_count(['xHz4a8mnB2pLcAfP'])
 # analyzers.tww3_moh_2p.probability_at_count(['dGchmDzq6xQ4Zwkb'])
-# analyzers.tww3_moh_2p.probability_at_count(['prRJahHm7kFCWTVD'])
-analyzers.tww3_moh_2p.probability_at_count([# 'JymjCVKqcTGr1nL8',
-                                            'dGchmDzq6xQ4Zwkb','xHz4a8mnB2pLcAfP','prRJahHm7kFCWTVD'])
+# analyzers.tww3_moh_2p.probability_at_count(['2wRmB64JybnXzp7K'])
+# analyzers.tww3_moh_2p.probability_at_count(['xHz4a8mnB2pLcAfP','dGchmDzq6xQ4Zwkb','2wRmB64JybnXzp7K'])
 
-import json
-# params = {'id': 76827088, 'encounterID': 3009, 'difficulty': 5}
-# params = {'id': 76827088, 'encounterID': 3013, 'difficulty': 5}
-# params = {'id': 76827088, 'encounterID': 3015, 'difficulty': 5}
-# ranks = wcl.getRanksForFights(params)
-# codes = [parse.get("report", {}).get("code", "") for parse in ranks]
+# analyzers.tww3_moh_2p.probability_at_count([# 'JymjCVKqcTGr1nL8',
+#                                             'dGchmDzq6xQ4Zwkb','xHz4a8mnB2pLcAfP','prRJahHm7kFCWTVD'])
 
-# # analyzers.draw_boss_path.draw_path(codes, "The Geargrinder", params)
-# # analyzers.draw_boss_path.draw_path(codes, "Sprocketmonger Lockenstock", params)
-# analyzers.draw_boss_path.draw_path(codes, 229953, params)
+# talent = [ 125039, 124865, 125008 ]
+# items = [ 237673, 237671, 237676, 237672, 237674 ]
+# def entry_match_fn( id, items ):
+#   return lambda combatant_info: [
+#     talent.get( 'id' ) in id
+#     for talent in [
+#         entry
+#         for tree in [ 'talentTree', 'talent_tree' ]
+#         for entry in combatant_info.get( tree, [] )
+#     ]
+#   ].count(True) == len(talent) and [
+#     item.get('id') in items
+#     for item in combatant_info.get( 'gear', [] )
+#     ].count(True) >= 4
+# codes = [
+#   report
+#   for report in wcl.getReportCodes( {
+#       'zoneID': 45,
+#       'pagination_limit': 10,
+#   } )
+#   if report.get('startTime') > 1753747200000
+# ]
+# dedupe = []
+# filtered_codes = [
+#   report.get('code')
+#   for report in codes
+#   # if report.get('code') == 'JymjCVKqcTGr1nL8'
+#   if ( fights := wcl.getFights(report) )
+#   if ( report.update( { 'startTime': min([f.get('startTime') for f in fights]),
+#                         'endTime': max([f.get('endTime') for f in fights])}) ) or True
+#   # if ( p := print(wcl.getPlayerWith(report, entry_match_fn(talent, items)))) or True
+#   if ( sources := wcl.getPlayerWith( report, entry_match_fn( talent, items ) ) )
+#   # if ( event_fingerprint := wcl.getEvents( report + { 'limit': 10 } ) ) or True
+#   # if event_fingerprint not in dedupe
+#   # if ( _ := dedupe.append(event_fingerprint) ) or True
+# ]
+# print(filtered_codes)
+# print(len(filtered_codes))
 
-# params = { 'zoneID': 44, 'pagination_limit': 5 }
-# params = { 'guildID': 33026, 'pagination_limit': 1, 'report_limit': 1 }
-# analyzers.behaviour_checker.check_behaviour( params )
+# wcl.getPointsSpent()
+# analyzers.tww3_moh_2p.probability_at_count( filtered_codes )
+
+# analyzers.manaforge_omega.plexus_sentinel()
+
+analyzers.tww3_moh_2p_v2.windows()
+# cProfile.run('analyzers.tww3_moh_2p_v2.windows()')

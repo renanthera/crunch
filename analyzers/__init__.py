@@ -13,3 +13,5 @@ from . import overwhelming_force
 from . import draw_boss_path
 from . import behaviour_checker
 from . import tww3_moh_2p
+from . import tww3_moh_2p_v2
+from . import manaforge_omega

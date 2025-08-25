@@ -5,9 +5,11 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
+
 class hashdict(dict):
   def __hash__(self):
     return hash((frozenset(self), frozenset(self.values())))
+
 
 def execute_queue(behaviours):
   rvs = {}
@@ -19,6 +21,7 @@ def execute_queue(behaviours):
     else:
       rvs.update({b.requirement: b.execute_requirement()})
       yield b.is_applicable(rvs[b.requirement])
+
 
 class Behaviour:
   requirement = None
@@ -44,6 +47,7 @@ class Behaviour:
       return self.requirement[0](self.requirement[1])
     return None
 
+
 def check_behaviour(params):
   behaviours = [Behaviour() for _ in range(20)]
 
@@ -52,23 +56,17 @@ def check_behaviour(params):
       b.configure(data.params)
     return any(execute_queue(behaviours))
 
-  assert('guildID' in params)
-  codes = [entry.get('code') for entry in wcl.getReportCodes( params )]
+  assert 'guildID' in params
+  codes = [entry.get('code') for entry in wcl.getReportCodes(params)]
   if params.get('report_limit') is not None:
-    codes = codes[:params.get('report_limit')]
-
+    codes = codes[: params.get('report_limit')]
 
   # print(v.requirements)
   _ = Analyzer(
     codes,
-    params = {
+    params={
       'limit': 25000,
     },
-    callbacks = [
-      {
-        'any': False,
-        'callback': lambda _, e: print(e)
-      }
-    ],
-    fight_filter = _fight_filter
+    callbacks=[{'any': False, 'callback': lambda _, e: print(e)}],
+    fight_filter=_fight_filter,
   )
