@@ -7,22 +7,6 @@ import uuid
 # stringified and is ready to be passed as a Request.
 
 
-def cache(Request):
-  def decorator(query):
-    ret = None
-    cache = Cache()
-
-    if query.cacheable:
-      ret = Request(query, cache.get_artifact(query.string))
-    if ret is None:
-      ret = Request(query)
-    if query.cacheable and not cache.lookup_uuid(query.string):
-      cache.put_artifact(query.string, ret.data)
-    return ret
-
-  return decorator
-
-
 class Cache:
   cache_root = 'cache'
   cache_index = cache_root + '/index.json'
@@ -82,3 +66,21 @@ def write_artifact(artifact, path):
   with open(path, 'w') as handle:
     handle.write(json_object)
   return 0
+
+
+_cache = Cache()
+
+
+def cache(Request):
+  def decorator(query):
+    ret = None
+
+    if query.cacheable:
+      ret = Request(query, _cache.get_artifact(query.string))
+    if ret is None:
+      ret = Request(query)
+    if query.cacheable and not _cache.lookup_uuid(query.string):
+      _cache.put_artifact(query.string, ret.data)
+    return ret
+
+  return decorator

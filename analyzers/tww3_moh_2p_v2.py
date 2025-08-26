@@ -80,7 +80,7 @@ def windows():
 
   # don't include all report codes as it makes development kinda painful
   MP = True
-  keys = list(report_dict.keys())[: 2**10]
+  keys = list(report_dict.keys())[:2**10]
 
   # MP = False
   # keys = list(report_dict.keys())[:1]
@@ -143,11 +143,11 @@ def windows():
     for pipe in pipes:
       values += pipe.recv()
 
-  import matplotlib.pyplot as plt
+  # import matplotlib.pyplot as plt
 
-  plt.style.use('dark_background')
-  plt.hist([e.get('delta') for e in values], log=True, bins=50)
-  plt.show()
+  # plt.style.use('dark_background')
+  # plt.hist([e.get('delta') for e in values], log=True, bins=50)
+  # plt.show()
 
   values.sort(key=lambda e: e.get('delta', -1), reverse=True)
   print(len(values))
