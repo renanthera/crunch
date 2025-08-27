@@ -87,5 +87,6 @@ import cProfile
 
 # analyzers.manaforge_omega.plexus_sentinel()
 
-analyzers.tww3_moh_2p_v2.windows()
+# analyzers.tww3_moh_2p_v2.trailing_window_size()
+analyzers.tww3_moh_2p_v2.match_trigger_windows()
 # cProfile.run('analyzers.tww3_moh_2p_v2.windows()')
