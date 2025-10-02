@@ -30,6 +30,7 @@ def gen_fight_params_update(code_dict):
         if player.get('name') == fight.get('name', '') and self.fight_id == fight.get(
           'fightID'
         ):
+          self.event_data['distribution_tracker'].valid_source = player.get('id')
           return {'sourceID': player.get('id')}
 
   return _fight_params_update
@@ -91,8 +92,8 @@ def process_analyzer(analyzer, MP):
   # don't include all report codes as it makes development kinda painful
   reports = gen_report_dict()
   # keys = list(reports.keys())
-  # keys = list(reports.keys())[: 2**6]
-  keys = list(reports.keys())[: 4]
+  keys = list(reports.keys())[: 2**6]
+  # keys = list(reports.keys())[: 4]
   # keys = list(reports.keys())[:1]
   report_dict = {k: v for k, v in reports.items() if k in keys}
 
@@ -329,6 +330,9 @@ def matches_expected_distribution():
     def callback(self):
       assert(False)
 
+    def reset(self):
+      pass
+
   class TriggerAttempt(Child):
     base_callback_layout = {
       'type': [
@@ -365,11 +369,20 @@ def matches_expected_distribution():
       ]
     }
 
-    ICD = 5
+    ICD_DURATION = 5
+    icd = defaultdict(lambda: -1)
+
+    def check_icd(self, timestamp, agid):
+      if timestamp - self.icd[agid] > self.ICD_DURATION:
+        self.icd[agid] = timestamp
+        return True
+      return False
+
+    def reset(self):
+      self.icd.clear()
 
     class Trigger:
       open = True
-      icd = defaultdict(lambda: -1)
       count = 0
 
       def __repr__(self):
@@ -377,26 +390,28 @@ def matches_expected_distribution():
 
     def callback(self):
       def __internal(analyzer, event):
-        if event.get('sourceID') in self.parent.skip_list:
+        sid = event.get('sourceID')
+        # print('attempt', event)
+        # print(f'  {sid}, {event.get("abilityGameID")}, {sid != self.parent.valid_source}, {sid in self.parent.skip_list}')
+        if sid != self.parent.valid_source:
+          return
+        if sid in self.parent.skip_list:
           return
 
-        sid = event.get('sourceID')
-        assert(sid != 0)
+        assert sid != 0
         aid = actor_id(analyzer, sid)
         if not len(self.parent.trigger_list[aid]):
-          # print('made trigger')
           self.parent.trigger_list[aid].append(TriggerAttempt.Trigger())
         if not self.parent.trigger_list[aid][-1].open:
-          # print('made trigger')
           self.parent.trigger_list[aid].append(TriggerAttempt.Trigger())
 
         trigger = self.parent.trigger_list[aid][-1]
-        # print(aid, trigger)
         agid = event.get('abilityGameID')
         timestamp = event.get('timestamp')
-        if timestamp - trigger.icd[agid] > self.ICD:
+        # print(f'  {timestamp}, {self.icd[agid]}, {timestamp - self.icd[agid]}')
+        if self.check_icd(timestamp, agid):
+          # print('increment')
           trigger.count += 1
-          trigger.icd[agid] = timestamp
 
       return __internal
 
@@ -421,8 +436,11 @@ def matches_expected_distribution():
     def callback(self):
       def __internal(analyzer, event):
         tid = event.get('sourceID')
+        if tid != self.parent.valid_source:
+          return
         if tid in self.parent.skip_list:
           return
+
         event_timestamp = event.get('timestamp')
         next_force = -1
         # print('start search at', event_timestamp)
@@ -443,7 +461,7 @@ def matches_expected_distribution():
 
         assert(next_force is not None)
         aid = actor_id(analyzer, tid)
-        st = analyzer.params.get('startTime')
+        # st = analyzer.params.get('startTime')
         # no force found, must be natural
         # TODO: handle end of fight?
         event_type = event.get('type')
@@ -481,28 +499,6 @@ def matches_expected_distribution():
 
       return __internal
 
-  def post_process(analyzer):
-    dt = analyzer.event_data['distribution_tracker']
-    for aid, tl in dt.trigger_list.items():
-      if len(tl):
-        if tl[-1].open:
-          tl.pop()
-        analyzer.event_data['trigger_list'][aid] += tl
-    # for aid, fl in dt.force_list.items():
-    #   if len(fl):
-    #     print('good fl', aid)
-    #     analyzer.event_data['force_list'][aid] += fl
-    #   else:
-    #     print('bad fl', aid)
-    dt.skip_map = []
-    dt.trigger_list = defaultdict(list)
-    dt.force_list = defaultdict(list)
-    dt.pe_stacks = 0
-    for tl in dt.trigger_list.values():
-      # assert len(tl)
-      if len(tl) and tl[-1].open:
-        tl.pop()
-
   class Death(Child):
     base_callback_layout = {
       'type': 'death'
@@ -510,6 +506,8 @@ def matches_expected_distribution():
 
     def callback(self):
       def __internal(analyzer, event):
+        if event.get('targetID') != self.parent.valid_source:
+          return
         self.parent.skip_list.append(event.get('targetID'))
         assert len(self.trigger_list[actor_id(analyzer, event)])
         if self.parent.trigger_list[actor_id(analyzer, event)][-1].open:
@@ -518,14 +516,101 @@ def matches_expected_distribution():
   class DistributionTracker:
     children = [PotentialEnergy, TriggerAttempt]
 
+    def __repr__(self):
+      return f"{self.trigger_list}"
+
     def __init__(self):
       self.child_classes = [c(self) for c in self.children]
       self.callbacks = [c.callback_layout() for c in self.child_classes]
 
       self.skip_list = []
       self.pe_count = 0
+      self.valid_source = -1
       self.trigger_list = defaultdict(list)
       self.force_list = defaultdict(list)
+
+  def post_process(analyzer):
+    dt = analyzer.event_data['distribution_tracker']
+    for aid, tl in dt.trigger_list.items():
+      if len(tl) and tl[-1].open:
+        tl.pop()
+      # print(tl)
+      analyzer.event_data['trigger_list'][aid] += tl
+    # for aid, fl in dt.force_list.items():
+    #   if len(fl):
+    #     print('good fl', aid)
+    #     analyzer.event_data['force_list'][aid] += fl
+    #   else:
+    #     print('bad fl', aid)
+
+    dt.skip_list = []
+    dt.pe_stacks = 0
+    dt.valid_source = -1
+    dt.trigger_list.clear()
+    dt.force_list.clear()
+    for c in dt.child_classes:
+      c.reset()
+
+  def plot_composite(values):
+    v = []
+    for vals in values.values():
+      v += vals
+
+    import matplotlib.pyplot as plt
+    plt.style.use('dark_background')
+    fig, ax = plt.subplots()
+    m = max(e.count for e in v)
+    count = sum(e.count for e in v)
+    print(m)
+    ax.plot(range(1,m),[
+          sum(1 for v in vals if v.count <= i) / count for i in range(1, m)],
+                label='composite')
+
+    plt.show()
+
+  def plot_separate(values):
+    # print(values['92FhzdNX3j8w4ZtD-3-8'])
+    # for t, u in values.items():
+    #   print(t, u)
+    # print(values.keys())
+
+    import matplotlib.pyplot as plt
+    from mplcursors import cursor
+    plt.style.use('dark_background')
+    fig, ax = plt.subplots()
+    m = max(v.count for e in values.values() for v in e)
+    print(m)
+    lines = [
+        ax.plot(range(1,m), [
+          sum(1 for v in vals if v.count <= i) / count for i in range(1, m)],
+                label=aid)[0]
+        for aid, vals in values.items()
+        if (count := len(vals))
+    ]
+    leg = ax.legend()
+    map = {}
+    for legend_line, ax_line in zip(leg.get_lines(), lines):
+      legend_line.set_picker(6)
+      map[legend_line] = ax_line
+
+    def on_pick(e):
+      legend_line = e.artist
+      if legend_line not in map:
+        return
+      al = map[legend_line]
+      print(al)
+      visible = not al.get_visible()
+      al.set_visible(visible)
+      legend_line.set_alpha(1.0 if visible else 0.2)
+      fig.canvas.draw()
+
+    fig.canvas.mpl_connect('pick_event', on_pick)
+    c = cursor(hover=True)
+    @c.connect("add")
+    def _(sel):
+      print(sel.artist)
+
+    plt.show()
 
   def distribution_analyzer(report_dict, pipe=None):
     dt = DistributionTracker()
@@ -550,43 +635,5 @@ def matches_expected_distribution():
       return rv.event_data.get('trigger_list', [])
 
   values = process_analyzer(distribution_analyzer, MP=False)
-  # values.sort(key=lambda v: v.count)
-  # print(values.keys())
-  # print(sum(1 for v in values if v.open))
-  import matplotlib.pyplot as plt
-  from mplcursors import cursor
-  plt.style.use('dark_background')
-  fig, ax = plt.subplots()
-  m = max(v.count for e in values.values() for v in e)
-  print(m)
-  lines = [
-      ax.plot(range(1,m), [
-        sum(1 for v in vals if v.count <= i) / count for i in range(1, m)],
-               label=aid)[0]
-      for aid, vals in values.items()
-      if (count := len(vals))
-  ]
-  leg = ax.legend()
-  map = {}
-  for legend_line, ax_line in zip(leg.get_lines(), lines):
-    legend_line.set_picker(6)
-    map[legend_line] = ax_line
-
-  def on_pick(e):
-    legend_line = e.artist
-    if legend_line not in map:
-      return
-    al = map[legend_line]
-    print(al)
-    visible = not al.get_visible()
-    al.set_visible(visible)
-    legend_line.set_alpha(1.0 if visible else 0.2)
-    fig.canvas.draw()
-
-  fig.canvas.mpl_connect('pick_event', on_pick)
-  c = cursor(hover=True)
-  @c.connect("add")
-  def _(sel):
-    print(sel.artist)
-
-  plt.show()
+  plot_separate(values)
+  # plot_composite(values)
