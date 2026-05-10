@@ -1,4 +1,3 @@
-from collections import defaultdict
 import wcl
 
 from .helper import Analyzer
@@ -222,6 +221,7 @@ def elevated_stagger_vis():
       return
     if event.get('timestamp') > self.params.get('startTime') + 30:
       return
+    print('ci')
     talents = event.get('talentTree', {})
     self.event_data['ticks'] = 20
     for talent in talents:
@@ -233,10 +233,14 @@ def elevated_stagger_vis():
   def expected_tick_size(self):
     return self.event_data['pool'] / self.event_data['ticks_remaining']
 
+  def expected_reordered_tick_size(self):
+    return (self.event_data['pool'] + self.event_data['last_clear_amount']) / self.event_data['ticks_remaining']
+
   def absorb(self, event):
     print(f'  + {fmt_timestamp(event.get('timestamp') - self.params.get('startTime'))} {event.get("amount")}')
     self.event_data['pool'] += event.get('amount')
     self.event_data['ticks_remaining'] = self.event_data['ticks']
+    self.event_data['consecutive_absorbs'] += 1
 
   def touch_of_death(self, event):
     print(event)
@@ -248,28 +252,56 @@ def elevated_stagger_vis():
     if self.event_data['touch_of_death_amount'] != 0:
       print(f'  - {fmt_timestamp(event.get('timestamp') - self.params.get('startTime'))} TOD {event.get("amount")}')
       self.event_data['touch_of_death_amount'] = 0
+      self.event_data['last_clear_amount'] = self.event_data['pool']
       self.event_data['pool'] = 0
       # self.event_data['pool'] -= event.get('amount')
     else:
       print(f'  - {fmt_timestamp(event.get('timestamp') - self.params.get('startTime'))} {event.get("amount")}')
+      self.event_data['last_clear_amount'] = event.get('amount') * self.event_data['ticks_remaining']
       self.event_data['pool'] -= event.get('amount') * self.event_data['ticks_remaining']
     print('P: ', self.event_data['pool'])
 
+  def tick_delta(self, event, reorder):
+    if self.event_data['last_tick'] == -1:
+      return True
+    err_factor = 2 + self.event_data['consecutive_absorbs']
+    lhs = self.event_data['ticks'] * err_factor + 1
+    if reorder:
+      lhs = abs(expected_reordered_tick_size(self) - event.get('unmitigatedAmount'))
+    else:
+      lhs = abs(expected_tick_size(self) - event.get('unmitigatedAmount'))
+    return lhs < self.event_data['ticks'] * err_factor
+
   def tick(self, event):
+
     expected = expected_tick_size(self)
+    expected_reorder = expected_reordered_tick_size(self)
     tick_size = event.get('unmitigatedAmount')
     should_exit = False
+    deduct_skipped_clear = False
 
     # validate
+    print(self.event_data['ticks_remaining'])
     print(f'  = {fmt_timestamp(event.get('timestamp') - self.params.get('startTime'))} {tick_size} [{tick_size * (self.event_data["ticks_remaining"] - 1)}] ({expected}, {abs(tick_size - expected)})')
-    if (expected - tick_size) ** 2 > 0.05 * tick_size and self.event_data['last_tick'] != -1:
-      print(fmt_timestamp(event.get('timestamp') - self.params.get('startTime')), event.get('timestamp'))
-      print('  ', expected, tick_size, self.event_data)
+    if not tick_delta(self, event, False):
       should_exit = True
+      # check event reorder
+      if tick_delta(self, event, True):
+        print('REORDER', fmt_timestamp(event.get('timestamp') - self.params.get('startTime')), event.get('timestamp'))
+        print('  ', expected_reorder, tick_size, self.event_data)
+        deduct_skipped_clear = True
+        should_exit = False
+      else:
+        print(fmt_timestamp(event.get('timestamp') - self.params.get('startTime')), event.get('timestamp'))
+        print('  ', expected, tick_size, self.event_data)
 
+    self.event_data['consecutive_absorbs'] = 0
     self.event_data['ticks_remaining'] -= 1
     self.event_data['last_tick'] = tick_size
     self.event_data['pool'] = tick_size * self.event_data['ticks_remaining']
+    if deduct_skipped_clear:
+      self.event_data['pool'] -= self.event_data['last_clear_amount']
+    print(self.event_data['ticks_remaining'])
 
     if should_exit:
       raise SystemExit
@@ -308,7 +340,7 @@ def elevated_stagger_vis():
           'callback': tick
         }
       ],
-      event_data={'last_tick': -1, 'pool': 0, 'ticks': 20, 'ticks_remaining': 0, 'touch_of_death_amount': 0},
+      event_data={'last_tick': -1, 'pool': 0, 'last_clear': 0, 'consecutive_absorbs': 0, 'ticks': 20, 'ticks_remaining': 0, 'touch_of_death_amount': 0},
       postprocess=pp
     )
 
