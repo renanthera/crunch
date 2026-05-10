@@ -149,38 +149,43 @@ def getReportCodes(params):
   return Request(query.Reports(params)).data.get('data', [])
 
 
+def __rc_parse(vec, report_codes, extra={}):
+  for index, rank in enumerate(vec):
+    if type(rank) is not dict:
+      continue
+    # print(rank)
+    name = rank.get('name')
+    if name == 'Anonymous':
+      return
+    report = rank.get('report', {})
+    code = report.get('code')
+    assert code is not None
+    if code not in report_codes.keys():
+      report_codes[code] = []
+    if rank.get('hardModeLevel') is not None:
+      report_codes[code].append({
+        'name': name,
+        'startTime': report.get('startTime', -1),
+        'endTime': report.get('endTime', -1),
+        'fightID': report.get('fightID')
+      })
+    else:
+      report_codes[code].append({
+        'name': name,
+        'fightID': rank.get('report', {}).get('fightID', -1),
+        'startTime': rank.get('report', {}).get('startTime', -1),
+      } | extra)
+
 def getReportCodesFromRanks(params):
-  DBG = False
-  whitelist = [
-    'name',
-    # 'class',
-    # 'spec',
-    'report',
-  ]
   report_codes = {}
   req = Request(query.CharacterRankings(params)).data
+  __rc_parse(req.get('rankings', []), report_codes)
+  return report_codes
+
+def getReportCodesFromRanksZone(params):
+  report_codes = {}
+  req = Request(query.ZoneCharacterRankings(params)).data
   for cr in req:
-    if DBG:
-      for k, v in cr.get('characterRankings', {}).items():
-        if k != 'rankings':
-          print(f'{k}: {v}', end=', ')
-      print()
-    for index, rank in enumerate(cr.get('characterRankings', {}).get('rankings')):
-      code = rank.get('report', {}).get('code')
-      assert code is not None
-      if code not in report_codes.keys():
-        report_codes[code] = []
-      report_codes[code].append(
-        {
-          'name': rank.get('name'),
-          'fightID': rank.get('report', {}).get('fightID', -1),
-          'startTime': rank.get('report', {}).get('startTime', -1),
-        }
-      )
-      if DBG:
-        print(f'  {index + 1:4}. ', end='')
-        for k, v in rank.items():
-          if k in whitelist:
-            print(f'{k}: {v}', end=', ')
-        print()
+    __rc_parse(cr.get('characterRankings', {}).get('rankings'),
+               report_codes, {'id': cr.get('id')})
   return report_codes

@@ -10,9 +10,10 @@ class Query:
   args = {}
   fields = []
   children = None
+  name = None
 
   def components(self):
-    name = self.__class__.__name__
+    name = self.__class__.__name__ if self.name is None else self.name
     return {
       'name': name[ 0 ].lower() + name[ 1: ],
       'args': {
@@ -203,6 +204,10 @@ class GQL_RankingTimeframeType(GQL_Enum):
   allowed = ['Today', 'Historical']
 
 
+class GQL_LeaderboardRank(GQL_Enum):
+  allowed = ['Any', 'LogsOnly']
+
+
 class ReportData(Query):
   pass
 
@@ -376,19 +381,84 @@ class Zone(Query):
   args = {
     'id': GQL_Int,
   }
+  cacheable = False
 
 
 class Encounters(Query):
   parent = Zone
-  fields = ['name']
+  fields = ['id', 'name']
+  cacheable = False
 
+class Encounter(Query):
+  parent = WorldData
+  args = {
+    'id': GQL_Int
+  }
+  # fields = ['id', 'name']
+  cacheable = False
 
-class CharacterRankings(Query):
+class ZoneCharacterRankings(Query):
+  name = 'CharacterRankings'
+  parent = Encounters
+  cacheable = False
   @staticmethod
   def _paginator(_body, _query):
     cr = _body.get('characterRankings', {})
+    pagination_limit = _query.params.get('pagination_limit', 20)
     has_more_pages = cr.get('hasMorePages', False)
     current_page = cr.get('page', 0)
+    # print(_body.keys())
+    # print(has_more_pages, pagination_limit, current_page)
+
+    if pagination_limit > 20:
+      print(
+        'wcl only permits a CharacterRankings pagination limit of 20 as of 20205-08-24, setting to 20'
+      )
+      pagination_limit = 20
+    if not has_more_pages:
+      return False
+    if current_page >= pagination_limit:
+      return False
+    _query.update({'page': current_page + 1})
+    return True
+
+  @staticmethod
+  def _pagination_handler(_prev, _next):
+    for cr in _prev:
+      # print(cr.keys())
+      next_entry = next(t for t in _next if t.get('id') == cr.get('id'))
+      # print(next_entry['characterRankings']['rankings'])
+      cr['characterRankings']['rankings'] += next_entry
+
+  args = {
+    'bracket': GQL_Int,
+    'difficulty': GQL_Int,
+    'filter': GQL_String,
+    'page': GQL_Int,
+    'partition': GQL_Int,
+    'serverRegion': GQL_String,
+    'serverSlug': GQL_String,
+    'size': GQL_Int,
+    'leaderboard': GQL_LeaderboardRank,
+    'metric': GQL_CharacterRankingMetricType,
+    'includeCombatantInfo': GQL_Boolean,
+    'className': GQL_String,
+    'specName': GQL_String,
+    'covenantID': GQL_Int,
+    'soulbindID': GQL_Int,
+  }
+  paginator = _paginator
+  pagination_handler = _pagination_handler
+
+
+class CharacterRankings(Query):
+  parent = Encounter
+  cacheable = False
+  @staticmethod
+  def _paginator(_body, _query):
+    cr = _body.get('characterRankings', {})
+    has_more_pages = _body.get('hasMorePages', False)
+    current_page = _body.get('page', 0)
     pagination_limit = _query.params.get('pagination_limit', 20)
     if pagination_limit > 20:
       print(
@@ -405,10 +475,8 @@ class CharacterRankings(Query):
   @staticmethod
   def _pagination_handler(_prev, _next):
     for i, cr in enumerate(_prev):
-      cr['characterRankings']['rankings'] += _next[i]['characterRankings']['rankings']
+      cr['rankings'] += _next[i]['rankings']
 
-  parent = Encounters
-  # cacheable = False
   args = {
     'bracket': GQL_Int,
     'difficulty': GQL_Int,
@@ -418,6 +486,7 @@ class CharacterRankings(Query):
     'serverRegion': GQL_String,
     'serverSlug': GQL_String,
     'size': GQL_Int,
+    'leaderboard': GQL_LeaderboardRank,
     'metric': GQL_CharacterRankingMetricType,
     'includeCombatantInfo': GQL_Boolean,
     'className': GQL_String,

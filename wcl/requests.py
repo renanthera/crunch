@@ -16,15 +16,16 @@ class Request:
   def __init__(self, query, data=None):
     self.query = query
     self.data = self.get_request() if data is None else data
-    # if data is not None:
-    #   print( 'cached    ', self.query.stringify() )
+    if self.DEBUG:
+      if data is None:
+        print(f'  query: {self.query.stringify()}')
+      if data is not None:
+        print( '  cached:', self.query.stringify() )
 
   def get_request(self):
     def https_request(retry=0):
       query_string = self.query.stringify()
 
-      if self.DEBUG:
-        print('requesting', query_string)
       try:
         req = requests.post(
           self.v2_endpoint,
@@ -80,9 +81,13 @@ class Request:
       path if type(path) is list else [path],
     )
 
+    rv_names = ['data', 'rankings']
     if isinstance(body, dict) and isfunction(self.query.paginator):
       if self.query.paginator(body, self.query):
-        body['data'] += self.get_request().get('data')
+        for word in rv_names:
+          if word in body.keys():
+            body[word] += self.get_request().get(word)
+            break
 
     if (
       isinstance(body, list)

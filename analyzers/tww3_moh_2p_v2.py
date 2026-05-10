@@ -93,8 +93,8 @@ def process_analyzer(analyzer, MP):
   reports = gen_report_dict()
   # keys = list(reports.keys())
   keys = list(reports.keys())[: 2**6]
+  keys = list(reports.keys())[: 2**9]
   # keys = list(reports.keys())[: 4]
-  # keys = list(reports.keys())[:1]
   report_dict = {k: v for k, v in reports.items() if k in keys}
 
   values = []
@@ -635,5 +635,6 @@ def matches_expected_distribution():
       return rv.event_data.get('trigger_list', [])
 
   values = process_analyzer(distribution_analyzer, MP=False)
+  print(len(values.keys()))
   plot_separate(values)
   # plot_composite(values)
