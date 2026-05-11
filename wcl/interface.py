@@ -182,10 +182,16 @@ def getReportCodesFromRanks(params):
   __rc_parse(req.get('rankings', []), report_codes)
   return report_codes
 
-def getReportCodesFromRanksZone(params):
+def getReportCodesFromRanksZone(params, min_timestamp=None):
   report_codes = {}
   req = Request(query.ZoneCharacterRankings(params)).data
   for cr in req:
+    if min_timestamp is not None:
+      cr['characterRankings']['rankings'] = [
+        rank
+        for rank in cr['characterRankings']['rankings']
+        if rank.get('startTime') > min_timestamp
+      ]
     __rc_parse(cr.get('characterRankings', {}).get('rankings'),
                report_codes, {'id': cr.get('id')})
   return report_codes

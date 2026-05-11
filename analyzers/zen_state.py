@@ -45,7 +45,7 @@ def gen_report_dict():
 
   return {
     k: v
-    for k, v in wcl.getReportCodesFromRanksZone(params).items()
+    for k, v in wcl.getReportCodesFromRanksZone(params, 1778112000000).items()
   }
 
 def process_analyzer(analyzer, MP):
@@ -83,8 +83,11 @@ def process_analyzer(analyzer, MP):
 
   # don't include all report codes as it makes development kinda painful
   reports = gen_report_dict()
+  # for k, v in reports.items():
+  #   print(k, v)
+  # raise SystemExit
   # keys = reports.keys()
-  keys = list(reports.keys())[: 4]
+  keys = list(reports.keys())[: 1]
   report_dict = {k: v for k, v in reports.items() if k in keys}
 
   values = []
@@ -223,15 +226,18 @@ def vis():
     return rv.event_data
 
   out = process_analyzer(_vis, MP=False)
-  x = [
-    event.current_hp / event.max_hp
+  values = [
+    (event.current_hp / event.max_hp,
+     event.absorb.amount / event.damage.amount,
+     event
+     )
     for event in out['events']
+    if event.max_hp and event.damage.amount
+    if event.max_hp is not None and event.damage.amount is not None
   ]
-  y = [
-    event.absorb.amount / event.damage.amount
-    for event in out['events']
-  ]
-  z = out['events']
+  x = [ v[0] for v in values ]
+  y = [ v[1] for v in values ]
+  z = [ v[2] for v in values ]
   import matplotlib.pyplot as plt
   plt.style.use('dark_background')
   fig = plt.figure()
