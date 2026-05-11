@@ -84,7 +84,7 @@ def process_analyzer(analyzer, MP):
   # don't include all report codes as it makes development kinda painful
   reports = gen_report_dict()
   # keys = reports.keys()
-  keys = list(reports.keys())[: 1]
+  keys = list(reports.keys())[: 4]
   report_dict = {k: v for k, v in reports.items() if k in keys}
 
   values = []
@@ -98,39 +98,53 @@ def process_analyzer(analyzer, MP):
   return values
 
 @dataclass
-class Pair:
+class Event:
   timestamp: int
   amount: int
   abilityGameID: int
   source: int
   target: int
+  instance: int
 
   @staticmethod
   def new(event, keys):
     # keys |= set(event.keys())
-    return Pair(event.get('timestamp'),
-                event.get('amount') + event.get('absorb', 0) + event.get('absorbed', 0) + event.get('overkill', 0),
-                event.get('extraAbilityGameID', event.get('abilityGameID')),
+    return Event(event.get('timestamp'),
+                event.get('amount') + event.get('absorbed', 0) + event.get('overkill', 0),
+                event.get('extraAbilityGameID') if event.get('type') == 'absorbed' else event.get('abilityGameID'),
                 event.get('sourceID'),
-                event.get('targetID'))
+                event.get('attackerID') if event.get('type') == 'absorbed' else event.get('targetID'),
+                event.get('attackerInstance') if event.get('type') == 'absorbed' else event.get('sourceInstance'),
+                )
 
 keys = set()
+ct = 0
 @dataclass(init=False)
 class StaggerEvent:
-  absorb: Pair
-  damage: Pair
+  absorb: Event
+  damage: Event
   current_hp: int
   max_hp: int
 
-  def validate(self):
+  def validate(self, s):
     # print(self, self.damage.timestamp - self.absorb.timestamp)
-    conds = (self.absorb.source == self.absorb.target,
-             self.absorb.target == self.damage.target,
+    conds = (self.absorb.source == self.damage.target or self.damage.target == -1,
+             self.absorb.target == self.damage.source or self.absorb.target == -1,
+             self.absorb.instance == self.damage.instance or self.absorb.target == -1,
              self.absorb.abilityGameID == self.damage.abilityGameID,
-             abs(self.absorb.timestamp - self.damage.timestamp) < 5,
+             abs(self.absorb.timestamp - self.damage.timestamp) < 27,
              self.max_hp is not None
              )
-    return all(conds)
+    print(fmt_timestamp(self.absorb.timestamp - s.params.get('startTime')))
+    print(self, '\n  ', end='')
+    for c in conds:
+      print(c, end=' ')
+    print()
+    # global ct
+    # if ct > 1:
+    #   raise SystemExit
+    # ct += 1
+    assert all(conds)
 
 def vis():
   def combatantinfo(self, event):
@@ -145,10 +159,11 @@ def vis():
         break
 
   def absorb(self, event):
+    print('  ', event)
     e = StaggerEvent()
-    e.absorb = Pair.new(event, keys)
-    e.max_hp = self.event_data['max_hp']
+    e.absorb = Event.new(event, keys)
     e.current_hp = self.event_data['current_hp']
+    e.max_hp = self.event_data['max_hp']
     self.event_data['events'].append(e)
 
   def damage_taken(self, event):
@@ -159,9 +174,11 @@ def vis():
     if not len(self.event_data['events']):
       return
     e = self.event_data['events'][-1]
-    e.damage = Pair.new(event, keys)
-    if not e.validate():
-      self.event_data['events'].pop()
+    if hasattr(e, 'damage'):
+      return
+    print('  ', event)
+    e.damage = Event.new(event, keys)
+    e.validate(self)
 
   def max_hp(self, event):
     if event.get('type') == 'combatantinfo':
@@ -192,6 +209,7 @@ def vis():
         },
         {
           'type': 'damage',
+          'hitType': 1,
           'callback': damage_taken
         },
         {
@@ -205,11 +223,22 @@ def vis():
     return rv.event_data
 
   out = process_analyzer(_vis, MP=False)
-  pairs = [
-    (event.current_hp / event.max_hp, event.absorb.amount / event.damage.amount)
+  x = [
+    event.current_hp / event.max_hp
     for event in out['events']
   ]
-  for pair in pairs:
-    print(pair)
-  print(len(out['events']))
-  # TODO: implement vis
+  y = [
+    event.absorb.amount / event.damage.amount
+    for event in out['events']
+  ]
+  z = out['events']
+  import matplotlib.pyplot as plt
+  plt.style.use('dark_background')
+  fig = plt.figure()
+  ax1 = fig.add_subplot()
+  ax1.scatter(x, y, picker=True)
+  def onpick(event):
+    ind = event.ind
+    print(ind, z[ind[0]])
+  fig.canvas.mpl_connect('pick_event', onpick)
+  plt.show()
